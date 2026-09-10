@@ -612,9 +612,9 @@ function genSingleTarotReading(card, rev, domain){
   const D = TAROT_DOMAIN[domain] || TAROT_DOMAIN.general;
   const t = TAROT_THEME[card.n];
   const arc = t ? t.arc : '转化';
-  // 核心词（正/逆位）
-  const core = rev ? card.rev : card.up;
-  // 领域化的第一句
+  const arcName = t ? t.n : card.up;
+
+  // 领域化开场白
   const introMap = {
     general: '今日宇宙为你送来这张牌，是有原因的。',
     love: '在感情的世界里，这张牌的出现意味深长。',
@@ -624,67 +624,80 @@ function genSingleTarotReading(card, rev, domain){
     health: '身心的语言有时藏在牌里，这张牌你需要认真对待。'
   };
   const intro = introMap[domain] || introMap.general;
-  // 牌面解读（带正/逆位差异）
-  const bodyMap = {
-    general: {
-      0: rev ? '你感到内心的秩序被打乱，这是一种必要的震荡。' : '新的旅程正在你脚下展开，世界在等待你的踏出。',
-      1: rev ? '创造力被压抑，或许你在等待一个许可——那个许可只来自你自己。' : '丰饶正在靠近，你的创造力、关系或物质都将迎来生长。',
-      2: rev ? '你被外在的权威压制，需要找回内心的秩序感。' : '以坚定与理性掌舵，混乱将化为可控的版图。',
-      3: rev ? '内心的声音在告诉你：打破旧框架，答案在别处。' : '向有经验者请教，遵循已被验证的道路，会让你走得更稳。',
-      4: rev ? '一段重要关系在提醒你：真正对齐的选择，需要你诚实地面对自己。' : '一段重要的关系或选择摆在面前，遵从真心，爱会指引你。',
-      5: rev ? '对立的力量正在拉扯你，先定方向，再谈速度。' : '以坚定意志驾驭对立的力量，胜利属于不回头的人。',
-      6: rev ? '你对自己太严苛了，柔软不是软弱。' : '真正的强大是温柔的，以耐心与慈悲驯服内心的猛兽。',
-      7: rev ? '别把自己关得太久，适当的独处是养料，过度的封闭是牢笼。' : '退一步，提灯自照，独处会让你找回久违的方向与清明。',
-      8: rev ? '周期来到下坡，别硬抗，接受起伏是智慧。' : '命运之轮正转向你，把握这股上升的潮流，机遇稍纵即逝。',
-      9: rev ? '你在逃避某份该承担的责任，正视它，天平才会重新平衡。' : '凡事皆有因果，以诚实与公正面对，结果会站在你这边。',
-     10: rev ? '你在做无谓的抵抗，放下执念，新的视野才会打开。' : '松开掌控，换一个角度看，答案会意外地清晰。',
-     11: rev ? '旧循环在重演，你需要找到主动破局的力量。' : '力量正在重组，拥抱不确定性，命运站在你这边。',
-     12: rev ? '你感到失去方向，但这是寻找真正信仰的契机。' : '信念在重建，以纯粹的心出发，你会找到同行者。',
-     13: rev ? '深层的恐惧正在浮现，不要逃避它，让它自然流过。' : '死亡不是终结，是蜕变的开始，旧的你正在结束。',
-     14: rev ? '过度控制只会适得其反，臣服于更大的节奏。' : '顺流而行，与宇宙的节奏对齐，命运之流在托举你。',
-     15: rev ? '你在用外在的诱惑逃避内心的空洞，醒醒。' : '魔鬼的枷锁是幻象，你远比这牢笼更自由。',
-     16: rev ? '地基不稳，欲望在催促你，先稳住再行动。' : '一座高楼正在你的意志中拔地而起，但你需要看清楚方向。',
-     17: rev ? '灵感的火花被迷雾遮蔽，换个角度寻找。' : '星星之火可以燎原，你的愿望正在被宇宙接收到。',
-     18: rev ? '深渊的恐惧在提醒你：只有面对，阴影才会消散。' : '月亮升起，内在的直觉在引导你，相信那些看不见的信号。',
-     19: rev ? '过度兴奋让你忽略了必要的准备，冷静下来。' : '太阳照耀，你的内在力量正在最大化发挥。',
-     20: rev ? '最后的审判被推迟，你需要先原谅自己。' : '号角响起，一个旧的周期正在结束，新的你在诞生。',
-     21: rev ? '还差最后一步，你只是在逃避那个你已经拥有的答案。' : '一个完整的周期正在落幕，所有的努力都在此刻汇聚。'
-    },
-    love: {
-      0: rev ? '感情里的新开始被你推迟了，那个人在等你行动。' : '感情的新章节正在展开，勇敢踏出那一步。',
-      1: rev ? '在感情中付出太多却忘了自己，需要重新平衡。' : '感情的丰饶正在靠近，你值得被温柔以待。',
-      2: rev ? '感情中的权力拉扯让你疲惫，需要新的沟通方式。' : '以成熟和理性面对感情中的分歧，稳定是你们的基石。',
-      3: rev ? '传统观念在束缚你的感情选择，问问自己真正要什么。' : '在关系中获得有智慧的建议，会让你们走得更稳。',
-      4: rev ? '关系中的选择让你犹豫，倾听内心的声音。' : '一段重要的感情或选择摆在面前，遵从真心，爱会指引你。',
-      5: rev ? '感情中双方目标不一致，需要先统一方向。' : '你们在感情中并肩作战，合力就能抵达。',
-      6: rev ? '感情中的耐心正在流失，柔软才是真正的力量。' : '以温柔和耐心经营感情，强大的爱无需张扬。',
-      7: rev ? '感情中的独处需求未被尊重，需要重新协商空间。' : '在感情中保持适度的独立，会让彼此更有吸引力。',
-      8: rev ? '感情的周期正在转变，接受这个下坡，它也是必经之路。' : '感情正在迎来新的机遇，把握这个上升的节点。',
-      9: rev ? '感情中某方在逃避责任，诚实是重建信任的第一步。' : '以公正和诚实面对感情中的问题，因果会给你们答案。',
-    10: rev ? '感情的僵局需要你换视角，别用同一方式反复尝试。' : '在感情中暂停不是退缩，而是为了更清晰地前进。',
-    11: rev ? '感情的框架正在重组，以新的信念重新出发。' : '感情的信念在重建，以纯粹的心出发，会找到真正的人。',
-    12: rev ? '旧的感情模式在反复出现，需要主动打破它。' : '感情正在经历深层的蜕变，旧的不去新的不来。',
-    13: rev ? '感情中的失落让你恐惧，但这是重生的必经之路。' : '感情的结束不是失败，是为更合适的相遇腾出空间。',
-    14: rev ? '感情中的控制欲在破坏关系，学会放手。' : '在感情中顺其自然，与对方的节奏对齐。',
-    15: rev ? '感情的枷锁是幻象，你比这段关系更自由。' : '感情中的绑定感是幻象，真正自由的爱你才值得拥有。',
-    16: rev ? '感情的愿景过于理想化，需要更脚踏实地的规划。' : '感情的蓝图正在形成，用你们的意志共同构建。',
-    17: rev ? '感情中的愿望被迷雾遮蔽，倾听对方真实的声音。' : '感情的愿望正在被宇宙接收，保持信念。',
-    18: rev ? '感情中的恐惧和不安全感在作祟，需要面对才能超越。' : '在感情中信任内在的直觉，那些微妙的信号是真实的。',
-    19: rev ? '感情中的过度投入让你失去平衡，需要退一步。' : '感情中的太阳正在照耀，你们的爱正在最强的时候。',
-    20: rev ? '感情的最终审判被推迟，原谅是和解的开始。' : '感情的旧循环正在结束，新的你们正在诞生。',
-    21: rev ? '感情的圆满被你亲手推迟，最后一步就是接受它。' : '感情的圆满正在落幕，所有的经历都在为此刻做准备。'
-    }
+
+  // 基础解读（直接用牌卡自带的 upT / revT，不做二次翻译避免错位）
+  const baseText = rev ? card.revT : card.upT;
+
+  // 领域化补充解读（基于 upT 内容做差异化）
+  const upText = card.upT;
+  const domainSupplement = {
+    general: '',
+    love: upText.includes('关系') || upText.includes('选择') || upText.includes('爱') || upText.includes('真心') || upText.includes('牌阵')
+      ? ' 在感情层面，这意味着你需要诚实地面对内心的声音。'
+      : upText.includes('旅程') || upText.includes('冒险') || upText.includes('勇气') || upText.includes('行动')
+      ? ' 这份能量也会影响你当下的情感状态。'
+      : '',
+    wealth: upText.includes('丰') || upText.includes('圆满') || upText.includes('成功') || upText.includes('成就') || upText.includes('礼物')
+      ? ' 这份能量在财务上暗示着好运正在靠近。'
+      : upText.includes('行动') || upText.includes('力量') || upText.includes('意志') || upText.includes('坚定')
+      ? ' 这份行动力也会影响你的财务决策。'
+      : upText.includes('结束') || upText.includes('放下') || upText.includes('终结') || upText.includes('死亡')
+      ? ' 这是财务上做清理和重新规划的时机。'
+      : '',
+    career: upText.includes('稳定') || upText.includes('结构') || upText.includes('规则') || upText.includes('秩序')
+      ? ' 在事业上，这意味着你需要建立更清晰的职业框架。'
+      : upText.includes('创造') || upText.includes('工具') || upText.includes('行动') || upText.includes('意志')
+      ? ' 你的创造力和行动力正是现在事业上最需要的。'
+      : upText.includes('指引') || upText.includes('导师') || upText.includes('经验')
+      ? ' 向有经验者请教，会让事业之路更顺。'
+      : '',
+    study: upText.includes('学习') || upText.includes('知识') || upText.includes('智慧')
+      ? ' 学业的能量与这张牌高度吻合，多投入会收获明显。'
+      : upText.includes('休息') || upText.includes('内省') || upText.includes('独处')
+      ? ' 在学习之前给自己一些沉淀的时间。'
+      : upText.includes('判断') || upText.includes('决定') || upText.includes('选择')
+      ? ' 这是学业上做重要决策的时机。'
+      : '',
+    health: upText.includes('力量') || upText.includes('柔') || upText.includes('勇气')
+      ? ' 身心上，你正有一股温柔而坚定的力量在支持你。'
+      : upText.includes('休息') || upText.includes('恢复') || upText.includes('疗愈')
+      ? ' 身体在提醒你给自己更多的修复时间。'
+      : upText.includes('结束') || upText.includes('转变') || upText.includes('蜕变')
+      ? ' 身心正在经历一个转化期，给自己耐心。'
+      : ''
   };
-  // Fallback
-  const bodyMapGeneral = bodyMap.general;
-  const bodyByDomain = bodyMap[domain] || bodyMapGeneral;
-  const n = card.n;
-  const bodyText = bodyByDomain[n] || (rev ? card.revT : card.upT);
+  const supplement = domainSupplement[domain] || '';
+
   // 行动建议
-  const action = rev
-    ? `建议你在「${t ? t.n : core}」的能量中先稳住内核，再寻找突破口。`
-    : `建议你在「${t ? t.n : core}」的能量中顺势而为，让它成为你的助力。`;
-  return { intro, bodyText, action, domainName: D.name, domainIcon: D.icon };
+  const actionMap = {
+    general: rev
+      ? `建议你在「${arcName}」的能量中先稳住内核，再寻找突破口。别急于行动，先理清方向。`
+      : `建议你在「${arcName}」的能量中顺势而为，让它成为你的助力。`,
+    love: rev
+      ? `在感情里，先给自己一些空间，理清真正想要的，再做决定或行动。`
+      : `在感情中信任自己的直觉，遇到选择时，诚实面对内心。`,
+    wealth: rev
+      ? `财务上暂时避免做大的投入或决定，先守住现有成果。`
+      : `财运的能量在支持你，适合积极规划财务方向。`,
+    career: rev
+      ? `职场上先稳扎稳打，别急于求变，把基础打牢再说。`
+      : `事业上有一股上升的力量在支持你，积极行动会有好结果。`,
+    study: rev
+      ? `学习状态可能有些波动，给自己一点耐心，换个方法也许会有突破。`
+      : `学业上适合投入精力，积极学习会有可观的收获。`,
+    health: rev
+      ? `身体在提醒你调整节奏，休息不是退缩，而是为了更好地出发。`
+      : `身心状态良好，适合在这个基础上做一些新的调整或开始新的健康计划。`
+  };
+  const action = actionMap[domain] || actionMap.general;
+
+  return {
+    intro,
+    bodyText: baseText + supplement,
+    action,
+    domainName: D.name,
+    domainIcon: D.icon
+  };
 }
 
 function genCombinedReading(cards,revs,domain){
