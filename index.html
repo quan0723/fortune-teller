@@ -607,6 +607,86 @@ function revealTarot(){
   setTimeout(()=>showTarotReading(),selectedTarot.length*400+300);
 }
 
+
+function genSingleTarotReading(card, rev, domain){
+  const D = TAROT_DOMAIN[domain] || TAROT_DOMAIN.general;
+  const t = TAROT_THEME[card.n];
+  const arc = t ? t.arc : '转化';
+  // 核心词（正/逆位）
+  const core = rev ? card.rev : card.up;
+  // 领域化的第一句
+  const introMap = {
+    general: '今日宇宙为你送来这张牌，是有原因的。',
+    love: '在感情的世界里，这张牌的出现意味深长。',
+    wealth: '财富的能量正在向你传递信号，这张牌是关键。',
+    career: '事业之路走到这里，这张牌是你当下的镜像。',
+    study: '学业的命题浮现，这张牌指向你当下的核心课题。',
+    health: '身心的语言有时藏在牌里，这张牌你需要认真对待。'
+  };
+  const intro = introMap[domain] || introMap.general;
+  // 牌面解读（带正/逆位差异）
+  const bodyMap = {
+    general: {
+      0: rev ? '你感到内心的秩序被打乱，这是一种必要的震荡。' : '新的旅程正在你脚下展开，世界在等待你的踏出。',
+      1: rev ? '创造力被压抑，或许你在等待一个许可——那个许可只来自你自己。' : '丰饶正在靠近，你的创造力、关系或物质都将迎来生长。',
+      2: rev ? '你被外在的权威压制，需要找回内心的秩序感。' : '以坚定与理性掌舵，混乱将化为可控的版图。',
+      3: rev ? '内心的声音在告诉你：打破旧框架，答案在别处。' : '向有经验者请教，遵循已被验证的道路，会让你走得更稳。',
+      4: rev ? '一段重要关系在提醒你：真正对齐的选择，需要你诚实地面对自己。' : '一段重要的关系或选择摆在面前，遵从真心，爱会指引你。',
+      5: rev ? '对立的力量正在拉扯你，先定方向，再谈速度。' : '以坚定意志驾驭对立的力量，胜利属于不回头的人。',
+      6: rev ? '你对自己太严苛了，柔软不是软弱。' : '真正的强大是温柔的，以耐心与慈悲驯服内心的猛兽。',
+      7: rev ? '别把自己关得太久，适当的独处是养料，过度的封闭是牢笼。' : '退一步，提灯自照，独处会让你找回久违的方向与清明。',
+      8: rev ? '周期来到下坡，别硬抗，接受起伏是智慧。' : '命运之轮正转向你，把握这股上升的潮流，机遇稍纵即逝。',
+      9: rev ? '你在逃避某份该承担的责任，正视它，天平才会重新平衡。' : '凡事皆有因果，以诚实与公正面对，结果会站在你这边。',
+     10: rev ? '你在做无谓的抵抗，放下执念，新的视野才会打开。' : '松开掌控，换一个角度看，答案会意外地清晰。',
+     11: rev ? '旧循环在重演，你需要找到主动破局的力量。' : '力量正在重组，拥抱不确定性，命运站在你这边。',
+     12: rev ? '你感到失去方向，但这是寻找真正信仰的契机。' : '信念在重建，以纯粹的心出发，你会找到同行者。',
+     13: rev ? '深层的恐惧正在浮现，不要逃避它，让它自然流过。' : '死亡不是终结，是蜕变的开始，旧的你正在结束。',
+     14: rev ? '过度控制只会适得其反，臣服于更大的节奏。' : '顺流而行，与宇宙的节奏对齐，命运之流在托举你。',
+     15: rev ? '你在用外在的诱惑逃避内心的空洞，醒醒。' : '魔鬼的枷锁是幻象，你远比这牢笼更自由。',
+     16: rev ? '地基不稳，欲望在催促你，先稳住再行动。' : '一座高楼正在你的意志中拔地而起，但你需要看清楚方向。',
+     17: rev ? '灵感的火花被迷雾遮蔽，换个角度寻找。' : '星星之火可以燎原，你的愿望正在被宇宙接收到。',
+     18: rev ? '深渊的恐惧在提醒你：只有面对，阴影才会消散。' : '月亮升起，内在的直觉在引导你，相信那些看不见的信号。',
+     19: rev ? '过度兴奋让你忽略了必要的准备，冷静下来。' : '太阳照耀，你的内在力量正在最大化发挥。',
+     20: rev ? '最后的审判被推迟，你需要先原谅自己。' : '号角响起，一个旧的周期正在结束，新的你在诞生。',
+     21: rev ? '还差最后一步，你只是在逃避那个你已经拥有的答案。' : '一个完整的周期正在落幕，所有的努力都在此刻汇聚。'
+    },
+    love: {
+      0: rev ? '感情里的新开始被你推迟了，那个人在等你行动。' : '感情的新章节正在展开，勇敢踏出那一步。',
+      1: rev ? '在感情中付出太多却忘了自己，需要重新平衡。' : '感情的丰饶正在靠近，你值得被温柔以待。',
+      2: rev ? '感情中的权力拉扯让你疲惫，需要新的沟通方式。' : '以成熟和理性面对感情中的分歧，稳定是你们的基石。',
+      3: rev ? '传统观念在束缚你的感情选择，问问自己真正要什么。' : '在关系中获得有智慧的建议，会让你们走得更稳。',
+      4: rev ? '关系中的选择让你犹豫，倾听内心的声音。' : '一段重要的感情或选择摆在面前，遵从真心，爱会指引你。',
+      5: rev ? '感情中双方目标不一致，需要先统一方向。' : '你们在感情中并肩作战，合力就能抵达。',
+      6: rev ? '感情中的耐心正在流失，柔软才是真正的力量。' : '以温柔和耐心经营感情，强大的爱无需张扬。',
+      7: rev ? '感情中的独处需求未被尊重，需要重新协商空间。' : '在感情中保持适度的独立，会让彼此更有吸引力。',
+      8: rev ? '感情的周期正在转变，接受这个下坡，它也是必经之路。' : '感情正在迎来新的机遇，把握这个上升的节点。',
+      9: rev ? '感情中某方在逃避责任，诚实是重建信任的第一步。' : '以公正和诚实面对感情中的问题，因果会给你们答案。',
+    10: rev ? '感情的僵局需要你换视角，别用同一方式反复尝试。' : '在感情中暂停不是退缩，而是为了更清晰地前进。',
+    11: rev ? '感情的框架正在重组，以新的信念重新出发。' : '感情的信念在重建，以纯粹的心出发，会找到真正的人。',
+    12: rev ? '旧的感情模式在反复出现，需要主动打破它。' : '感情正在经历深层的蜕变，旧的不去新的不来。',
+    13: rev ? '感情中的失落让你恐惧，但这是重生的必经之路。' : '感情的结束不是失败，是为更合适的相遇腾出空间。',
+    14: rev ? '感情中的控制欲在破坏关系，学会放手。' : '在感情中顺其自然，与对方的节奏对齐。',
+    15: rev ? '感情的枷锁是幻象，你比这段关系更自由。' : '感情中的绑定感是幻象，真正自由的爱你才值得拥有。',
+    16: rev ? '感情的愿景过于理想化，需要更脚踏实地的规划。' : '感情的蓝图正在形成，用你们的意志共同构建。',
+    17: rev ? '感情中的愿望被迷雾遮蔽，倾听对方真实的声音。' : '感情的愿望正在被宇宙接收，保持信念。',
+    18: rev ? '感情中的恐惧和不安全感在作祟，需要面对才能超越。' : '在感情中信任内在的直觉，那些微妙的信号是真实的。',
+    19: rev ? '感情中的过度投入让你失去平衡，需要退一步。' : '感情中的太阳正在照耀，你们的爱正在最强的时候。',
+    20: rev ? '感情的最终审判被推迟，原谅是和解的开始。' : '感情的旧循环正在结束，新的你们正在诞生。',
+    21: rev ? '感情的圆满被你亲手推迟，最后一步就是接受它。' : '感情的圆满正在落幕，所有的经历都在为此刻做准备。'
+    }
+  };
+  // Fallback
+  const bodyMapGeneral = bodyMap.general;
+  const bodyByDomain = bodyMap[domain] || bodyMapGeneral;
+  const n = card.n;
+  const bodyText = bodyByDomain[n] || (rev ? card.revT : card.upT);
+  // 行动建议
+  const action = rev
+    ? `建议你在「${t ? t.n : core}」的能量中先稳住内核，再寻找突破口。`
+    : `建议你在「${t ? t.n : core}」的能量中顺势而为，让它成为你的助力。`;
+  return { intro, bodyText, action, domainName: D.name, domainIcon: D.icon };
+}
+
 function genCombinedReading(cards,revs,domain){
   const D=TAROT_DOMAIN[domain]||TAROT_DOMAIN.general;
   const t0=TAROT_THEME[cards[0].n],t1=TAROT_THEME[cards[1].n],t2=TAROT_THEME[cards[2].n];
@@ -669,6 +749,25 @@ function showTarotReading(){
       <div class="t-combined-section">
         <div class="t-section-title">🌟 行动建议</div>
         <div class="t-section-body">${r.advice}</div>
+      </div>
+    </div>`;
+  }
+  // 单牌模式：插入综合解读
+  if(tarotMode==='self'&&selectedTarot.length===1){
+    const card=cards[0];
+    const rev=revs[0];
+    const sr=genSingleTarotReading(card,rev,tarotDomain);
+    html+=`<div class="t-combined">
+      <div class="t-combined-badge">${sr.domainIcon} ${sr.domainName}</div>
+      <div class="t-combined-header">✦ 今 日 指 引 ✦</div>
+      <div class="t-combined-image">${sr.intro}</div>
+      <div class="t-combined-section">
+        <div class="t-section-title">🔮 牌面解读</div>
+        <div class="t-section-body">${sr.bodyText}</div>
+      </div>
+      <div class="t-combined-section">
+        <div class="t-section-title">🌟 行动建议</div>
+        <div class="t-section-body">${sr.action}</div>
       </div>
     </div>`;
   }
@@ -749,6 +848,15 @@ function doHoroSingle(){
     </div>
   </div>
   <div class="h-reading" style="margin-top:8px">
+    <h4>✨ 星象综合解读</h4>
+    <div style="font-size:12px;line-height:1.8;opacity:.9">
+      ${genHoroSynthesis(z, horoDim).elDesc} ${genHoroSynthesis(z, horoDim).domainGuide}
+    </div>
+    <div style="margin-top:8px;font-size:12px;color:var(--gold);line-height:1.7">
+      🌟 ${genHoroSynthesis(z, horoDim).advice}
+    </div>
+  </div>
+  <div class="h-reading" style="margin-top:8px">
     <h4>🔮 占卜师 ${seerName} 的话</h4>
     <div style="font-size:12px;line-height:1.8;opacity:.85">${pick(seer==='jimmy'?MSGS_JIMMY:MSGS_GUA)}</div>
   </div></div>`;
@@ -783,6 +891,38 @@ function getMatchScore(a,b){
   const comp=diffId===6?.95:diffId===4||diffId===8?.85:.75;
   return Math.round((sameEl*.4+sameType*.2+comp*.4)*100);
 }
+
+function genHoroSynthesis(z, domain){
+  const el = z.el[0]; // '火'/'水'/'风'/'土'
+  const tp = z.tp;
+  const elNames = {'火':'火象','水':'水象','风':'风象','土':'土象'};
+  const elDesc = {
+    火: '火象星座的你行动力强、直觉敏锐，但有时需要学会在行动前先倾听。',
+    水: '水象星座的你感受力极强、同理心丰富，但有时会过于敏感而迷失自己。',
+    风: '风象星座的你思维敏捷、善于沟通，但有时思绪飘忽需要找到落点。',
+    土: '土象星座的你脚踏实地的稳定感令人信赖，但有时过于保守会错过机会。'
+  };
+  const domainGuides = {
+    general: `今日星象的整体能量对${elNames[el]}的你是友好的。`,
+    love: `今日感情星象中，${z.n}座的独特能量会为你带来一些有意思的互动信号。`,
+    wealth: `今日财运星象显示，${z.n}座的能量在财务领域有积极的暗示。`,
+    career: `今日事业星象中，${z.n}座的特质会在工作场景中特别凸显。`,
+    study: `今日学业星象对${z.n}座的学习状态有特别的安排。`,
+    health: `今日健康星象提醒${z.n}座关注身心的平衡与节奏。`
+  };
+  const elAdvice = {
+    火: '今日适合主动出击，但记得在冲动之前给自己留一个呼吸的空间。',
+    水: '今日适合向内探索，但别让情绪把你淹没，动起来会更有力量。',
+    风: '今日适合与他人交流分享，但记得选择一个方向深入，而不是浅尝辄止。',
+    土: '今日适合脚踏实地的执行，但也要允许自己有灵活的调整空间。'
+  };
+  return {
+    elDesc: elDesc[el] || '',
+    domainGuide: domainGuides[domain] || domainGuides.general,
+    advice: elAdvice[el] || '保持开放，顺势而为。'
+  };
+}
+
 function getMatchTag(score,a,b){
   const combos=[
     {keys:['火火','水水','风风','土土'],name:'🔥 同频共振',desc:'灵魂频率高度一致，默契不需言语',detail:'你们是天生的一对（搭档）。同元素让你们天然理解彼此的思维和感受，合作时1+1>2。'},
@@ -858,6 +998,33 @@ function selectStick(idx,el){
   const sign=signPool[idx];
   setTimeout(()=>showSignResult(sign),600);
 }
+
+function genSignSynthesis(sign){
+  const g = sign.g;
+  const poem = sign.poem;
+  // 从签诗提取关键词
+  const keywords = poem.replace(/[，。、；：！？""''【】《》（）『』]/g, ' ').split(' ').filter(w=>w.length>=2).slice(0, 3);
+  // 签级对应的解读语气
+  const levelMap = {
+    '上上': {tone:'大吉', hint:'宇宙在全力支持你，抓住这个窗口期。', action:'大胆行动，但保持谦逊。'},
+    '上吉': {tone:'吉', hint:'能量向上，机会在向你招手。', action:'积极把握，但不必急于求成。'},
+    '中吉': {tone:'平', hint:'能量平稳，稳中求进是上策。', action:'保持节奏，不冒进不退缩。'},
+    '中平': {tone:'平', hint:'能量平稳，保持现状也是一种选择。', action:'观察等待，勿做大的变动。'},
+    '下签': {tone:'警惕', hint:'需要谨慎行事，避免冲动决定。', action:'三思而后行，多听取信任之人的意见。'}
+  };
+  const info = levelMap[g] || {tone:'平', hint:'保持平常心。', action:'顺其自然。'};
+  // 诗意综合
+  let guide = '';
+  if(keywords.length>0) guide += `签诗中「${keywords.join('」「')}」暗示着${info.hint}`;
+  else guide += info.hint;
+  return {
+    tone: info.tone,
+    guide: guide,
+    action: `行动指引：${info.action}`,
+    keywords: keywords.join(' / ')
+  };
+}
+
 function showSignResult(sign){
   const dimLabel=signDim==='day'?'今日':signDim==='week'?'本周':'本月';
   const seerName=seer==='jimmy'?'Jimmy':'瓜';
@@ -866,13 +1033,18 @@ function showSignResult(sign){
   document.getElementById('signDropHint').style.display='none';
   const result=document.getElementById('signResult');
   result.style.display='block';
+  const sg = genSignSynthesis(sign);
   result.innerHTML=`<div class="sign-scroll">
     <div class="sign-q">${sign.q} · ${dimLabel}</div>
     <div class="sign-level">${lvl}</div>
     <div class="sign-name">「 ${sign.n} 」</div>
     <div class="sign-gong">📜 签诗</div>
     <div class="sign-poem">${sign.poem}</div>
+    ${keywords ? `<div style="text-align:center;font-size:11px;opacity:.5;margin:4px 0">关键词：${sg.keywords}</div>` : ''}
     <div class="sign-interpret"><strong>💬 解读：</strong>${sign.inp}</div>
+    <div class="sign-interpret" style="border-top:1px dashed rgba(255,255,255,.15);padding-top:10px;margin-top:8px">
+      <strong>✨ 综合指引：</strong>${sg.guide} ${sg.action}
+    </div>
   </div>
   <div style="margin-top:12px;text-align:center;font-size:12px;opacity:.6">✧ ${pick(MSGS_GUA)} ✧</div>
   <button class="stick-btn" style="margin-top:10px" onclick="resetSign()">🌀 再摇一签</button>`;
