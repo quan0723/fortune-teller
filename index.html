@@ -852,10 +852,10 @@ function doHoroSingle(){
   </div>
   <div class="h-reading">
     <h4>📊 ${dimLabel}运势</h4>
-    <div class="dim"><strong>💕 感情</strong> ${data.love}</div>
-    <div class="dim"><strong>💼 事业</strong> ${data.career}</div>
-    <div class="dim"><strong>💰 财运</strong> ${data.wealth}</div>
-    <div class="dim"><strong>🏥 健康</strong> ${data.health}</div>
+    <div class="dim"><strong>💕 感情</strong> ${data.love} <span class="star-desc">— ${(function(){var n=(data.love.match(/★/g)||[]).length;return n>=4?'万事皆顺，贵人相助':n>=3?'状态上扬，积极行动':n>=2?'平稳前行，注意把握':'稍作休整，静待时机';})()}</span></div>
+    <div class="dim"><strong>💼 事业</strong> ${data.career} <span class="star-desc">— ${(function(){var n=(data.career.match(/★/g)||[]).length;return n>=4?'机遇降临，乘势而上':n>=3?'稳扎稳打，步步为营':n>=2?'略有停滞，谨慎观望':'暂时蛰伏，蓄势待发';})()}</span></div>
+    <div class="dim"><strong>💰 财运</strong> ${data.wealth} <span class="star-desc">— ${(function(){var n=(data.wealth.match(/★/g)||[]).length;return n>=5?'财运亨通，横财有望':n>=4?'财源广进，正财旺盛':n>=3?'收支平衡，保守为佳':'财运低迷，静待转机';})()}</span></div>
+    <div class="dim"><strong>🏥 健康</strong> ${data.health} <span class="star-desc">— ${(function(){var n=(data.health.match(/★/g)||[]).length;return n>=4?'身心和谐，健康满分':n>=3?'精力充沛，神清气爽':n>=2?'略有不适，调养为主':'需多休息，谨慎对待';})()}</span></div>
     <div style="margin-top:10px;font-size:12px;opacity:.7;border-top:1px solid rgba(255,255,255,.1);padding-top:10px">
       <strong>幸运色：</strong>${getCl(z.id)}&nbsp;&nbsp;<strong>幸运数：</strong>${getCn(z.id)}&nbsp;&nbsp;<strong>幸运方位：</strong>${getCd(z.id)}
     </div>
@@ -1002,14 +1002,18 @@ function showSticks(){
   signDrawn=true;
 }
 function selectStick(idx,el){
-  if(el.classList.contains('revealed'))return;
+  if(el.classList.contains('revealed')||el.classList.contains('selecting'))return;
+  // 立即视觉反馈
+  el.classList.add('selecting');
+  el.style.boxShadow='0 0 20px 6px rgba(241,196,15,.85)';
+  el.style.transform='scale(1.12)';
   playSfx('reveal');
-  // 隐藏所有签
-  document.querySelectorAll('#signArea .tarot-card').forEach(c=>c.classList.add('locked'));
-  el.classList.add('revealed');
-  el.classList.remove('selected');
-  const sign=signPool[idx];
-  setTimeout(()=>showSignResult(sign),600);
+  // 锁定所有签（禁用再次点击）
+  document.querySelectorAll('#signArea .tarot-card').forEach(function(c){c.style.pointerEvents='none';});
+  var sign=signPool[idx];
+  setTimeout(function(){
+    showSignResult(sign);
+  },650);
 }
 
 function genSignSynthesis(sign){
