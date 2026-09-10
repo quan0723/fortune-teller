@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0b0a1a">
+<title>🔮 占卜师 Jimmy & 瓜</title>
+<style>
+  :root{
+    --bg1:#0b0a1a; --bg2:#161033; --bg3:#241a4d;
+    --gold:#e9c46a; --gold2:#f7e0a3; --purple:#9d6bff; --pink:#ff8ac4; --mint:#7ff0c8;
+    --txt:#efeaff; --dim:#a99fce; --card:rgba(28,23,64,.55); --line:rgba(233,196,106,.3);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0;min-height:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+    color:var(--txt);
+    background:
+      radial-gradient(1100px 600px at 82% -12%, rgba(157,107,255,.30), transparent 60%),
+      radial-gradient(900px 520px at 8% 112%, rgba(255,138,196,.22), transparent 60%),
+      radial-gradient(700px 300px at 50% 108%, rgba(127,240,200,.16), transparent 60%),
+      linear-gradient(160deg,var(--bg1),var(--bg2) 55%,var(--bg3));
+    background-attachment:fixed;min-height:100vh;overflow-x:hidden;
+  }
+  #stars{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+  .meteor{position:absolute;width:150px;height:2px;border-radius:2px;opacity:0;
+    background:linear-gradient(90deg,transparent,#fff,rgba(255,255,255,.2));
+    box-shadow:0 0 8px #fff;transform:rotate(20deg);animation:fall 1.3s linear forwards}
+  @keyframes fall{0%{opacity:0;transform:translate(0,0) rotate(20deg)}12%{opacity:1}100%{opacity:0;transform:translate(-220px,560px) rotate(20deg)}}
+  .wrap{position:relative;z-index:1;max-width:520px;margin:0 auto;padding:16px 15px calc(30px + env(safe-area-inset-bottom));}
+
+  /* 头部：两位占卜师 */
+  header{text-align:center;margin:4px 0 10px;position:relative}
+  .crest{font-size:28px;filter:drop-shadow(0 0 12px rgba(157,107,255,.6));margin-bottom:2px}
+  header h1{font-size:22px;margin:0;letter-spacing:1px;font-weight:800;
+    background:linear-gradient(90deg,var(--gold2),var(--pink) 55%,var(--purple));
+    -webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 0 18px rgba(233,196,106,.25)}
+  header h1 .amp{color:var(--gold);-webkit-text-fill-color:var(--gold);margin:0 6px;animation:pulse 2.6s ease-in-out infinite;display:inline-block}
+  @keyframes pulse{0%,100%{opacity:.6;transform:scale(1)}50%{opacity:1;transform:scale(1.18)}}
+  header p{margin:7px 0 0;color:var(--dim);font-size:12px;letter-spacing:2px}
+  .seers-line{margin:9px auto 0;display:flex;justify-content:center;gap:10px;flex-wrap:wrap}
+  .seer-chip{font-size:11.5px;color:var(--dim);background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:20px;padding:4px 11px}
+  .seer-chip b{color:var(--gold2)}
+
+  /* 占卜师选择 */
+  .seers{margin-bottom:8px}
+  .opt-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px}
+  .opt{flex:1;min-width:74px;text-align:center;padding:11px 6px;border-radius:12px;border:1px solid var(--line);
+    background:rgba(255,255,255,.04);color:var(--txt);font-size:12px;cursor:pointer;transition:.2s;backdrop-filter:blur(4px)}
+  .opt.on{background:linear-gradient(135deg,rgba(233,196,106,.28),rgba(157,107,255,.28));border-color:var(--gold);color:#fff;box-shadow:0 0 14px rgba(233,196,106,.25)}
+  .section-title{font-size:12.5px;color:var(--gold2);margin:12px 4px 8px;letter-spacing:1px;font-weight:700;display:flex;align-items:center;gap:6px}
+  .section-title::before{content:'';flex:0 0 14px;height:1px;background:linear-gradient(90deg,transparent,var(--gold))}
+
+  .tabs{display:flex;gap:8px;background:rgba(255,255,255,.05);padding:5px;border-radius:16px;border:1px solid var(--line);margin:8px 0 14px;backdrop-filter:blur(8px)}
+  .tab{flex:1;text-align:center;padding:11px 2px;border-radius:12px;font-size:13.5px;color:var(--dim);cursor:pointer;transition:.25s;font-weight:600}
+  .tab.active{background:linear-gradient(135deg,var(--purple),#6a3fb0);color:#fff;box-shadow:0 6px 18px rgba(157,107,255,.45)}
+
+  .panel{display:none;animation:fade .35s ease}
+  .panel.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+  .hint{color:var(--dim);font-size:12.5px;line-height:1.7;text-align:center;margin:8px 4px 14px}
+
+  .btn{display:block;width:100%;border:none;cursor:pointer;font-size:15px;font-weight:700;letter-spacing:2px;padding:15px;border-radius:14px;color:#1a1130;
+    background:linear-gradient(135deg,var(--gold2),var(--gold));box-shadow:0 8px 22px rgba(233,196,106,.4);transition:.2s;margin-top:14px}
+  .btn:active{transform:scale(.97)}
+
+  /* 占卜师寄语 */
+  .seer-note{margin-top:12px;background:linear-gradient(135deg,rgba(157,107,255,.16),rgba(127,240,200,.1));border:1px solid var(--line);border-radius:13px;padding:12px 14px;font-size:13px;line-height:1.8;display:flex;gap:8px;align-items:flex-start}
+  .seer-note .t{font-size:18px;flex:0 0 auto;filter:drop-shadow(0 0 6px rgba(233,196,106,.5))}
+  .seer-note b{color:var(--gold2)}
+
+  /* 塔罗 */
+  .deck{display:flex;gap:9px;justify-content:center;flex-wrap:wrap;margin:16px 0}
+  .card{width:88px;height:140px;border-radius:12px;perspective:800px}
+  .card .inner{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform .8s cubic-bezier(.4,1.3,.5,1)}
+  .card.flip .inner{transform:rotateY(180deg)}
+  .face{position:absolute;inset:0;backface-visibility:hidden;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:8px}
+  .back{background:repeating-linear-gradient(45deg,#2a1f5e,#2a1f5e 8px,#33246e 8px,#33246e 16px);border:2px solid var(--gold);box-shadow:0 8px 22px rgba(0,0,0,.45),inset 0 0 18px rgba(157,107,255,.3)}
+  .back .sym{font-size:34px;filter:drop-shadow(0 0 8px rgba(233,196,106,.6))}
+  .back .rin{position:absolute;width:58px;height:58px;border:1px solid rgba(233,196,106,.5);border-radius:50%;top:50%;left:50%;transform:translate(-50%,-50%);box-shadow:0 0 10px rgba(233,196,106,.3)}
+  .front{transform:rotateY(180deg);background:linear-gradient(160deg,#2c2160,#171036);border:2px solid var(--gold);box-shadow:0 8px 22px rgba(0,0,0,.5),0 0 16px rgba(157,107,255,.25)}
+  .front .emo{font-size:36px;margin:2px 0;filter:drop-shadow(0 0 8px rgba(255,138,196,.5))}
+  .front .num{font-size:11px;color:var(--gold2);font-weight:700}
+  .front .nm{font-size:14px;font-weight:800;margin:2px 0;letter-spacing:1px}
+  .front .en{font-size:8.5px;color:var(--dim);font-style:italic}
+  .front .pos{margin-top:6px;font-size:10px;padding:3px 8px;border-radius:20px;font-weight:700}
+  .pos.up{background:rgba(120,255,170,.16);color:var(--mint)}
+  .pos.rev{background:rgba(255,140,140,.16);color:#ff9a9a}
+  .card.duo .tagname{position:absolute;top:-9px;left:50%;transform:translateX(-50%);font-size:10px;font-weight:800;padding:2px 9px;border-radius:10px;white-space:nowrap;box-shadow:0 3px 8px rgba(0,0,0,.4);z-index:2}
+  .tag-you{background:linear-gradient(135deg,#9d6bff,#c79bff);color:#fff}
+  .tag-friend{background:linear-gradient(135deg,#7ff0c8,#aef7da);color:#063}
+  .tag-bond{background:linear-gradient(135deg,#ff8ac4,#ffb6da);color:#5a1038}
+
+  .reading{margin-top:12px}
+  .rcard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px;margin-bottom:11px;backdrop-filter:blur(8px)}
+  .rcard h3{margin:0 0 5px;font-size:14px;color:var(--gold2);display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .rcard .kw{color:var(--pink);font-size:12px;margin:2px 0 7px;line-height:1.6}
+  .rcard .txt{font-size:13px;line-height:1.8}
+  .summary{background:linear-gradient(135deg,rgba(157,107,255,.22),rgba(233,196,106,.14));border:1px solid var(--gold);border-radius:14px;padding:15px;margin-top:6px}
+  .summary h3{margin:0 0 7px;color:var(--gold2);font-size:14px}
+  .summary p{font-size:13px;line-height:1.9;margin:0}
+
+  /* 星宫 */
+  .zlabel{font-size:11px;color:var(--dim);text-align:center;margin:4px 0 0}
+  .zgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:4px}
+  .zg{padding:9px 2px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.04);text-align:center;cursor:pointer;transition:.2s}
+  .zg.on{border-color:var(--gold);background:linear-gradient(135deg,rgba(233,196,106,.22),rgba(157,107,255,.22));box-shadow:0 0 12px rgba(233,196,106,.22)}
+  .zg .ico{font-size:21px}
+  .zg .nm{font-size:11px;margin-top:2px;font-weight:600}
+
+  .horo{margin-top:14px}
+  .horo .top{text-align:center;padding:16px;border-radius:16px;background:linear-gradient(135deg,rgba(157,107,255,.22),rgba(255,138,196,.14));border:1px solid var(--gold);margin-bottom:11px;position:relative;overflow:hidden}
+  .horo .top .big{font-size:13px;color:var(--dim);letter-spacing:2px}
+  .horo .top .zname{font-size:28px;font-weight:800;margin:4px 0}
+  .horo .top .zname .ze{font-size:34px;filter:drop-shadow(0 0 12px rgba(233,196,106,.7))}
+  .horo .top .sub{color:var(--dim);font-size:11.5px}
+  .dim4{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;margin-bottom:10px}
+  .dim{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:12px;backdrop-filter:blur(8px)}
+  .dim .h{font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:6px}
+  .dim .st{color:var(--gold2);font-size:14px;letter-spacing:2px;margin:5px 0}
+  .dim .d{font-size:12px;line-height:1.65}
+  .luck{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:12px;font-size:12.5px;line-height:1.8;text-align:center;backdrop-filter:blur(8px)}
+  .luck b{color:var(--gold2)}
+  .pair{margin-top:10px;background:linear-gradient(135deg,rgba(255,138,196,.16),rgba(157,107,255,.14));border:1px solid var(--pink);border-radius:13px;padding:13px;text-align:center}
+  .pair .ph{font-size:13px;font-weight:700;color:var(--pink);margin-bottom:6px}
+  .pair .ps{font-size:15px;letter-spacing:3px;color:var(--gold2);margin-bottom:6px}
+  .pair .pd{font-size:12.5px;line-height:1.8}
+  .advice{margin-top:10px;background:linear-gradient(135deg,rgba(233,196,106,.14),rgba(157,107,255,.14));border:1px solid var(--gold);border-radius:13px;padding:13px;font-size:13px;line-height:1.85}
+
+  /* 灵签 */
+  .stick-wrap{text-align:center;margin:16px 0}
+  .stick{font-size:74px;display:inline-block;transition:.2s;filter:drop-shadow(0 8px 16px rgba(0,0,0,.45))}
+  .shake{animation:shake .12s linear infinite}
+  @keyframes shake{0%{transform:rotate(-9deg)}50%{transform:rotate(9deg)}100%{transform:rotate(-9deg)}}
+  .sign-result{background:linear-gradient(160deg,rgba(28,23,64,.92),rgba(20,14,48,.92));border:1px solid var(--gold);border-radius:16px;padding:18px 16px;margin-top:8px;text-align:center;animation:fade .4s;position:relative;backdrop-filter:blur(8px)}
+  .sign-result::before,.sign-result::after{content:'';position:absolute;left:14px;right:14px;height:7px;border-radius:4px;background:linear-gradient(90deg,#8a5a2b,#caa15a,#8a5a2b)}
+  .sign-result::before{top:-4px}.sign-result::after{bottom:-4px}
+  .sign-result .lv{display:inline-block;padding:5px 16px;border-radius:20px;font-weight:800;font-size:13px;letter-spacing:2px}
+  .lv.s1{background:rgba(255,215,90,.25);color:#ffe27a;border:1px solid #ffe27a}
+  .lv.s2{background:rgba(150,230,150,.2);color:var(--mint);border:1px solid var(--mint)}
+  .lv.s3{background:rgba(120,200,255,.2);color:#9ad4ff;border:1px solid #9ad4ff}
+  .lv.s4{background:rgba(200,200,220,.18);color:#d6d6e6;border:1px solid #d6d6e6}
+  .lv.s5{background:rgba(255,150,150,.18);color:#ff9a9a;border:1px solid #ff9a9a}
+  .sign-result .no{color:var(--dim);font-size:11.5px;margin:12px 0 0}
+  .sign-result .poem{font-size:16px;line-height:2;margin:14px 0;color:var(--gold2);font-weight:600;letter-spacing:1px}
+  .sign-result .jie{font-size:13px;line-height:1.85;text-align:left}
+  .sign-result .tip{margin-top:13px;font-size:12px;color:var(--pink);line-height:1.8;font-style:italic}
+
+  footer{text-align:center;color:var(--dim);font-size:11px;margin-top:22px;line-height:1.7}
+  .dis{display:inline-block;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:10px;padding:7px 11px;margin-top:6px;font-size:10px}
+  .sig{color:var(--gold2);font-weight:700;letter-spacing:1px}
+</style>
+</head>
+<body>
+<div id="stars"></div>
+<div class="wrap">
+  <header>
+    <div class="crest">🔮</div>
+    <h1>占卜师 <span id="meName">Jimmy</span><span class="amp">&</span><span id="youName">瓜</span></h1>
+    <p>双星坐镇 · 塔罗 / 星宫 / 灵签</p>
+    <div class="seers-line">
+      <span class="seer-chip">🎴 <b>占卜师 Jimmy</b> · 执牌为引</span>
+      <span class="seer-chip">🔮 <b>占卜师 瓜</b> · 听签如风</span>
+    </div>
+  </header>
+
+  <div class="seers">
+    <div class="section-title">🪬 今日为你占卜的是</div>
+    <div class="opt-row" id="seerSel">
+      <div class="opt on" data-seer="jimmy">🎴 Jimmy</div>
+      <div class="opt" data-seer="gua">🔮 瓜</div>
+      <div class="opt" data-seer="both">✦ 双人同台</div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="tarot">🃏 塔罗</div>
+    <div class="tab" data-tab="zodiac">🌟 星宫</div>
+    <div class="tab" data-tab="stick">🎋 灵签</div>
+  </div>
+
+  <!-- 塔罗 -->
+  <div class="panel active" id="tarot">
+    <div class="hint">深呼吸，心中默念你的问题，<br>让命运之轮为你转动。</div>
+    <div class="section-title">🃏 选择牌阵</div>
+    <div class="opt-row" id="tarotSpread">
+      <div class="opt on" data-spread="1">单张 · 核心</div>
+      <div class="opt" data-spread="3">三张 · 过去现在未来</div>
+      <div class="opt" data-spread="duo">🤝 双人默契</div>
+    </div>
+    <button class="btn" id="tarotGo">🔮 洗牌 · 抽牌</button>
+    <div class="deck" id="tarotDeck"></div>
+    <div class="reading" id="tarotReading"></div>
+  </div>
+
+  <!-- 星宫 -->
+  <div class="panel" id="zodiac">
+    <div class="hint">星辰早已写下今天的轨迹，<br>选你与朋友的星座，看看你们的默契。</div>
+    <div class="section-title">🌟 你的星座</div>
+    <div class="zgrid" id="zgridMe"></div>
+    <div class="section-title">🌟 朋友的星座</div>
+    <div class="zgrid" id="zgridYou"></div>
+    <div class="section-title">⏳ 时间范围</div>
+    <div class="opt-row" id="zRange">
+      <div class="opt on" data-range="day">今日</div>
+      <div class="opt" data-range="week">本周</div>
+      <div class="opt" data-range="month">本月</div>
+    </div>
+    <button class="btn" id="zodiacGo">🌟 揭晓运势与默契</button>
+    <div class="horo" id="horoResult"></div>
+  </div>
+
+  <!-- 灵签 -->
+  <div class="panel" id="stick">
+    <div class="hint">双手合十，诚心默念所求之事，<br>摇动签筒，静待属于你的签。</div>
+    <div class="section-title">🎋 所求之事</div>
+    <div class="opt-row" id="stickCat">
+      <div class="opt on" data-cat="all">综合</div>
+      <div class="opt" data-cat="duo">🤝 默契</div>
+      <div class="opt" data-cat="career">事业</div>
+      <div class="opt" data-cat="love">姻缘</div>
+      <div class="opt" data-cat="study">学业</div>
+      <div class="opt" data-cat="health">健康</div>
+      <div class="opt" data-cat="wealth">财运</div>
+    </div>
+    <button class="btn" id="stickGo">🎋 摇签 · 问卜</button>
+    <div class="stick-wrap" id="stickWrap"></div>
+    <div id="stickResult"></div>
+  </div>
+
+  <footer>
+    <span class="sig" id="sigLine">占卜师 Jimmy & 瓜</span> 的星语小店 ✨
+    <div class="dis">仅供娱乐参考，命运握在你手中。</div>
+  </footer>
+</div>
+
+<script>
+/* ====== 两位占卜师（坐镇者，朋友关系）====== */
+const ME='占卜师 Jimmy', YOU='占卜师 瓜';
+document.getElementById('meName').textContent='Jimmy';
+document.getElementById('youName').textContent='瓜';
+document.getElementById('sigLine').textContent='占卜师 Jimmy & 瓜';
+
+const SEERS={
+  jimmy:{name:'占卜师 Jimmy',tag:'🎴',note:[
+    '牌不骗人，看清了就别回头。',
+    '局势在你手里，主动一步，局面就变。',
+    '别想太多，先做，答案在路上。',
+    '该断就断，拖着只是消耗自己。',
+    '今天适合把重要的事放在上午处理，能量最旺。'
+  ]},
+  gua:{name:'占卜师 瓜',tag:'🔮',note:[
+    '慢慢来，时机到了自然成。',
+    '你没说出口的，牌都替你说了。',
+    '顺一顺心气，事情会轻很多。',
+    '和朋友聊两句，比一个人钻牛角尖强。',
+    '今天不妨主动关心一下身边的朋友。'
+  ]},
+  both:{name:'占卜师 Jimmy & 瓜',tag:'✦',note:[
+    '我俩看了，结论一致：你心里早有答案。',
+    'Jimmy 说要冲，瓜 说要稳，折中便是最好。',
+    '一张牌冷，一支签暖，合起来刚好。',
+    '我们俩合伙开这店，就是信「好朋友能成事」。'
+  ]}
+};
+let seer='jimmy';
+bindOpts('seerSel','seer',v=>seer=v);
+function pick(a){return a[Math.floor(Math.random()*a.length)];}
+function seerNote(){
+  const s=SEERS[seer];
+  return `<div class="seer-note"><span class="t">${s.tag}</span><div><b>${s.name}</b>：${pick(s.note)}</div></div>`;
+}
+
+/* ====== 星空 + 流星 ====== */
+(function(){
+  const c=document.getElementById('stars');let h='';
+  for(let i=0;i<80;i++){const x=Math.random()*100,y=Math.random()*100,s=Math.random()*2+0.5,o=Math.random()*0.7+0.2,d=(Math.random()*4+2).toFixed(1);
+    h+=`<div style="position:absolute;left:${x}%;top:${y}%;width:${s}px;height:${s}px;border-radius:50%;background:#fff;opacity:${o};box-shadow:0 0 ${s*2}px #fff;animation:tw ${d}s ease-in-out infinite alternate"></div>`;}
+  c.innerHTML=h;
+})();
+const st=document.createElement('style');st.textContent='@keyframes tw{from{opacity:.2;transform:scale(.7)}to{opacity:1;transform:scale(1.1)}}';document.head.appendChild(st);
+(function meteors(){
+  function drop(){
+    const m=document.createElement('div');m.className='meteor';
+    m.style.left=(Math.random()*90)+'%';m.style.top=(Math.random()*40)+'%';
+    m.style.animationDuration=(Math.random()*0.8+0.9)+'s';
+    document.getElementById('stars').appendChild(m);
+    setTimeout(()=>m.remove(),1600);
+  }
+  setInterval(()=>{if(Math.random()<0.6)drop();},2200);
+})();
+
+/* ====== Tab ====== */
+document.querySelectorAll('.tab').forEach(t=>{
+  t.onclick=()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById(t.dataset.tab).classList.add('active');
+    window.scrollTo({top:0,behavior:'smooth'});
+  };
+});
+function bindOpts(rowId, attr, cb){
+  const row=document.getElementById(rowId);
+  row.querySelectorAll('.opt').forEach(o=>{
+    o.onclick=()=>{row.querySelectorAll('.opt').forEach(x=>x.classList.remove('on'));o.classList.add('on');cb&&cb(o.dataset[attr]);};
+  });
+}
+
+/* ====== 塔罗牌库 (22 大阿尔卡纳) ====== */
+const ICON={0:'🃏',1:'🪄',2:'🌙',3:'👑',4:'🏛️',5:'🔑',6:'💞',7:'🛡️',8:'🦁',9:'🏮',10:'🎡',11:'⚖️',12:'🙃',13:'💀',14:'🏺',15:'😈',16:'🗼',17:'⭐',18:'🌕',19:'☀️',20:'📯',21:'🌍'};
+const TAROT=[
+ {n:0,cn:'愚人',en:'The Fool',up:'新的开始、纯真、冒险、无限可能',rev:'鲁莽、恐惧、犹豫、逃避',upT:'崭新的旅程正在你脚下展开。带着孩子般的好奇与信任，纵身一跃，未知本身就是礼物。',revT:'你或许在逃避某个该踏出的脚步，或被过度的谨慎困住。找回那颗敢闯的心。'},
+ {n:1,cn:'魔术师',en:'The Magician',up:'创造、行动力、资源整合',rev:'拖延、自我怀疑、资源错配',upT:'你已握有实现愿望的一切工具。专注意图，意念即可化为现实，现在就动手。',revT:'天赋被闲置了。别让怀疑稀释你的力量，先从小行动重建信心。'},
+ {n:2,cn:'女祭司',en:'The High Priestess',up:'直觉、潜意识、神秘智慧',rev:'忽视内在声音、信息不透',upT:'答案不在喧嚣里，而在你静下来的那一刻。倾听直觉，它比逻辑更早知道真相。',revT:'你正忽略心底的声音，或被表面迷惑。给自己独处的时间，真相会浮现。'},
+ {n:3,cn:'皇后',en:'The Empress',up:'丰盛、孕育、温柔力量',rev:'过度付出、自我忽视、停滞',upT:'丰饶正在靠近。无论创意、关系还是物质，都将在你温柔的照料下生长繁茂。',revT:'你给了世界太多，却忘了滋养自己。先爱己，丰盛才会回流。'},
+ {n:4,cn:'皇帝',en:'The Emperor',up:'秩序、权威、稳定、掌控',rev:'专断、失控、僵化',upT:'建立结构与规则的时候到了。以坚定与理性掌舵，混乱将化为可控的版图。',revT:'你在用力过度掌控，或正受制于他人的专制。真正的权威源于自律。'},
+ {n:5,cn:'教皇',en:'The Hierophant',up:'传统、指引、信念、学习',rev:'墨守成规、教条、叛逆',upT:'向有经验者请教，遵循已被验证的道路，会让你走得更稳。',revT:'是时候跳出框架了。别让旧规矩绑住你独特的答案。'},
+ {n:6,cn:'恋人',en:'The Lovers',up:'爱、结合、价值选择、和谐',rev:'失衡、错误选择、分歧',upT:'一段重要的关系或选择摆在面前。遵从真心，爱会指引你做出对齐灵魂的决定。',revT:'内外价值观出现拉扯。诚实面对自己真正想要的，别为迎合而妥协。'},
+ {n:7,cn:'战车',en:'The Chariot',up:'意志、胜利、勇往直前',rev:'失控、方向迷失、内耗',upT:'以坚定意志驾驭对立的力量，胜利属于不回头的人。冲，就能抵达。',revT:'你被两股力量拉扯而原地打转。先定方向，再谈速度。'},
+ {n:8,cn:'力量',en:'Strength',up:'勇气、柔韧、内在驯服',rev:'自我怀疑、暴躁、怯懦',upT:'真正的强大是温柔的。以耐心与慈悲驯服内心的猛兽，你比想象中更有力。',revT:'你对自己太严苛了。柔软不是软弱，给它一点时间复原。'},
+ {n:9,cn:'隐士',en:'The Hermit',up:'独处、内省、寻道',rev:'孤立、迷失、拒绝帮助',upT:'退一步，提灯自照。这段独处会让你找回久违的方向与清明。',revT:'别把自己关得太久。适当的孤独是养料，过度的封闭是牢笼。'},
+ {n:10,cn:'命运之轮',en:'Wheel of Fortune',up:'转机、循环、好运降临',rev:'动荡、低谷、抗拒变化',upT:'命运之轮正转向你。把握这股上升的潮流，机遇稍纵即逝。',revT:'周期来到下坡，别硬抗。接受起伏，低谷亦是轮回的一环。'},
+ {n:11,cn:'正义',en:'Justice',up:'公平、因果、清醒抉择',rev:'偏颇、逃避责任、失衡',upT:'凡事皆有因果。以诚实与公正面对，结果会站在你这边。',revT:'你在逃避某份该承担的责任。正视它，天平才会重新平衡。'},
+ {n:12,cn:'倒吊人',en:'The Hanged Man',up:'换视角、臣服、顿悟',rev:'徒劳挣扎、固执',upT:'松开掌控，换一个角度看，答案会意外地清晰。暂停，即是前进。',revT:'你在做无谓的抵抗。放下执念，新的视野才会打开。'},
+ {n:13,cn:'死神',en:'Death',up:'结束、蜕变、重生',rev:'恐惧改变、停滞不前',upT:'一段旧的篇章正在落幕。允许它终结，你才有空间迎接新生。',revT:'你紧抓着该放下的。死亡不是终点，而是转化的开始。'},
+ {n:14,cn:'节制',en:'Temperance',up:'平衡、调和、耐心',rev:'极端、失调、急躁',upT:'以耐心调和生活的配方。不疾不徐，万事自会找到恰好的比例。',revT:'你处在失衡中。慢下来，把过满的杯倒出一些。'},
+ {n:15,cn:'恶魔',en:'The Devil',up:'执念、诱惑、束缚',rev:'挣脱、觉醒、解放',upT:'留意那些看似甜蜜的枷锁。你被什么欲望或依赖绑住了？看清即自由。',revT:'你正在觉醒，挣脱旧有的捆绑。恭喜，光就在链子断开处。'},
+ {n:16,cn:'高塔',en:'The Tower',up:'突变、崩塌、真相',rev:'从动荡中重建、抗拒余震',upT:'突如其来的震动会拆掉虚假的根基。痛，却是为了更真地重建。',revT:'余震未平，别急着盖回旧楼。让新的地基先长稳。'},
+ {n:17,cn:'星星',en:'The Star',up:'希望、疗愈、指引',rev:'失望、失联、迷茫',upT:'风暴过后，星星亮起。怀抱希望，你正在被温柔地疗愈与指引。',revT:'希望暂时蒙尘，但它从未熄灭。抬头，再走一小步。'},
+ {n:18,cn:'月亮',en:'The Moon',up:'潜意识、幻象、直觉',rev:'迷雾、谎言、不安',upT:'月光下真相朦胧。相信直觉，也别被恐惧制造的幻影骗了。',revT:'迷雾正在散去。那些让你不安的，大多只是影子。'},
+ {n:19,cn:'太阳',en:'The Sun',up:'喜悦、成功、光明',rev:'暂时阴霾、过度乐观',upT:'阳光普照，万物明朗。这是张充满快乐与成功的牌，尽情绽放吧！',revT:'云层暂时遮日，但光一直都在。别让一时的阴霾定义全局。'},
+ {n:20,cn:'审判',en:'Judgement',up:'觉醒、召唤、释然',rev:'自我批判、拖延决断',upT:'内在的号角响起。回顾来路，宽恕过往，是时候做出升华的抉择。',revT:'你在苛责旧日的自己。审判不是定罪，而是召唤你向前。'},
+ {n:21,cn:'世界',en:'The World',up:'圆满、达成、轮回完成',rev:'未竟、停滞、缺口',upT:'一个周期圆满落幕，你抵达了期待的彼岸。庆祝，然后开启下一段。',revT:'还差最后一步。别在终点前松手，补全那块拼图。'}
+];
+const SPREAD_POS={1:['核心主题'],3:['☜ 过去','◆ 现在','未来 ☞'],duo:['🎴 你','🔮 朋友','✨ 默契走向']};
+const DUO_TAG={0:'tag-you',1:'tag-friend',2:'tag-bond'};
+
+let tarotSpread='1';
+bindOpts('tarotSpread','spread',v=>tarotSpread=v);
+
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function doTarot(){
+  const deck=document.getElementById('tarotDeck');
+  const reading=document.getElementById('tarotReading');
+  deck.innerHTML='';reading.innerHTML='';
+  const mode=tarotSpread;
+  const count=mode==='duo'?3:parseInt(mode);
+  const picks=shuffle([...TAROT]).slice(0,count);
+  const pos=SPREAD_POS[mode];
+  picks.forEach(()=>{
+    const c=document.createElement('div');c.className='card'+(mode==='duo'?' duo':'');
+    c.innerHTML=`<div class="inner"><div class="face back"><div class="rin"></div><div class="sym">🔮</div></div><div class="face front"></div></div>`;
+    deck.appendChild(c);
+  });
+  const cards=[...deck.children];
+  document.getElementById('tarotGo').textContent='🔮 命运之轮转动中…';
+  setTimeout(()=>{
+    picks.forEach((p,i)=>{
+      const rev=Math.random()<0.4;
+      const card=cards[i];
+      card.classList.add('flip');
+      if(mode==='duo'){const tg=document.createElement('div');tg.className='tagname '+DUO_TAG[i];tg.textContent=pos[i];card.appendChild(tg);}
+      setTimeout(()=>{
+        const f=card.querySelector('.front');
+        f.innerHTML=`<div class="emo">${ICON[p.n]}</div><div class="num">${p.n}</div><div class="nm">${p.cn}</div><div class="en">${p.en}</div><div class="pos ${rev?'rev':'up'}">${rev?'逆位':'正位'}</div>`;
+      },400);
+      const rc=document.createElement('div');rc.className='rcard';
+      const kw=rev?p.rev:p.up, txt=rev?p.revT:p.upT;
+      const who=mode==='duo'?(i===0?'你 · ':i===1?'朋友 · ':'默契 · '):'';
+      rc.innerHTML=`<h3>${pos[i]} · ${p.cn} <span style="color:var(--dim);font-weight:400;font-size:11px">${p.en} ${rev?'逆位':'正位'}</span></h3><div class="kw">${who}关键词：${kw}</div><div class="txt">${txt}</div>`;
+      reading.appendChild(rc);
+    });
+    setTimeout(()=>{
+      const sum=document.createElement('div');sum.className='summary';
+      sum.innerHTML=`<h3>✨ 综合解读</h3><p>${genTarotSummary(picks,mode)}</p>`;
+      reading.appendChild(sum);
+      reading.insertAdjacentHTML('beforeend',seerNote());
+      document.getElementById('tarotGo').textContent='🔮 再抽一次';
+    },700);
+  },500);
+}
+function genTarotSummary(picks,mode){
+  if(mode==='duo'){
+    const a=picks[0].cn,b=picks[1].cn,c=picks[2].cn;
+    const pool=[
+      `你抽到「${a}」，朋友抽到「${b}」，而你们之间的默契正指向「${c}」。牌面说：好朋友不必时时同步，重要的是彼此都明白对方在想什么。`,
+      `为你而来的是「${a}」，为朋友而来的是「${b}」，串起两人的正是「${c}」。珍惜这份同行的缘分，顺着牌意去理解彼此，羁绊会愈发深厚。`,
+      `你与朋友的牌铺成一条线：${a} → ${b} → ${c}。宇宙在提醒你们——最好的相处，是各自完整，又彼此照亮。`
+    ];
+    return pool[Math.floor(Math.random()*pool.length)];
+  }
+  const themes=picks.map(p=>p.cn).join('、');
+  const lines=[
+    `今日的能量聚焦于「${themes}」。牌阵诉说：你正站在转折的节点，外在的变动其实都在呼应内心的成长。`,
+    `牌连成一条线索——过去种下的种子，正在现在显形，并将在未来开花。保持觉察，顺势而为。`,
+    `命运并非定数，而是邀请。这些牌提醒你：真正的力量，藏在你愿意面对与选择的勇气里。`
+  ];
+  return lines[Math.floor(Math.random()*lines.length)];
+}
+document.getElementById('tarotGo').onclick=doTarot;
+
+/* ====== 星宫 ====== */
+const ZODIAC=[
+ {n:'白羊座',e:'Aries',d:'3.21-4.19',i:'♈',el:'火'},
+ {n:'金牛座',e:'Taurus',d:'4.20-5.20',i:'♉',el:'土'},
+ {n:'双子座',e:'Gemini',d:'5.21-6.21',i:'♊',el:'风'},
+ {n:'巨蟹座',e:'Cancer',d:'6.22-7.22',i:'♋',el:'水'},
+ {n:'狮子座',e:'Leo',d:'7.23-8.22',i:'♌',el:'火'},
+ {n:'处女座',e:'Virgo',d:'8.23-9.22',i:'♍',el:'土'},
+ {n:'天秤座',e:'Libra',d:'9.23-10.23',i:'♎',el:'风'},
+ {n:'天蝎座',e:'Scorpio',d:'10.24-11.22',i:'♏',el:'水'},
+ {n:'射手座',e:'Sagittarius',d:'11.23-12.21',i:'♐',el:'火'},
+ {n:'摩羯座',e:'Capricorn',d:'12.22-1.19',i:'♑',el:'土'},
+ {n:'水瓶座',e:'Aquarius',d:'1.20-2.18',i:'♒',el:'风'},
+ {n:'双鱼座',e:'Pisces',d:'2.19-3.20',i:'♓',el:'水'}
+];
+const DIM_TXT={
+ love:['有心仪对象主动靠近，勇敢表达会有回应。','关系进入平稳期，多些耐心与倾听。','旧人旧事可能复燃，先想清自己要什么。','桃花运平平，专注提升自己更有吸引力。','误会易生，一句坦诚能化解大半隔阂。','暧昧升温，给彼此一点时间自然明朗。'],
+ career:['贵人运强，推进重要项目正当时。','宜守不宜攻，先把分内事做扎实。','灵感迸发，适合开启新计划。','团队配合是关键，别单打独斗。','遇到瓶颈，换个思路即破局。','被动等待不如主动争取，机会自己来敲门。'],
+ wealth:['有意外小收入，但投资宜谨慎。','开销偏大，记好账避免月底吃紧。','偏财运佳，不妨小试手气。','守财为主，暂缓大额支出。','合作生财，多人合力更稳。','消费欲上升，先满足必要再谈享受。'],
+ health:['精力充沛，适合运动出汗。','注意作息，别熬太晚伤元气。','肠胃敏感，饮食清淡为上。','情绪起伏大，找人聊聊会好很多。','肩颈易紧，多活动少久坐。','整体平稳，保持规律即安康。']
+};
+const COLORS=['珊瑚红','雾蓝','鹅黄','薄荷绿','暖橙','紫罗兰','象牙白','星空银','森野绿','蜜桃粉'];
+const DIRS=['东','东南','南','西南','西','西北','北','东北'];
+function stars(){const n=Math.floor(Math.random()*2)+3;return '★'.repeat(n)+'☆'.repeat(5-n);}
+
+let zSelMe=0,zSelYou=1,zRange='day';
+function buildZGrid(id,sel){
+  const g=document.getElementById(id);
+  ZODIAC.forEach((z,i)=>{const d=document.createElement('div');d.className='zg'+(i===sel?' on':'');d.innerHTML=`<div class="ico">${z.i}</div><div class="nm">${z.n}</div>`;
+    d.onclick=()=>{g.querySelectorAll('.zg').forEach(x=>x.classList.remove('on'));d.classList.add('on');if(id==='zgridMe')zSelMe=i;else zSelYou=i;};g.appendChild(d);});
+}
+buildZGrid('zgridMe',0);buildZGrid('zgridYou',1);
+bindOpts('zRange','range',v=>zRange=v);
+
+function pairInfo(a,b){
+  const ea=ZODIAC[a].el, eb=ZODIAC[b].el;
+  let kind;
+  if(ea===eb)kind='same';
+  else if((ea==='火'&&eb==='风')||(ea==='风'&&eb==='火')||(ea==='土'&&eb==='水')||(ea==='水'&&eb==='土'))kind='boost';
+  else if((ea==='火'&&eb==='水')||(ea==='水'&&eb==='火')||(ea==='土'&&eb==='风')||(ea==='风'&&eb==='土'))kind='clash';
+  else kind='calm';
+  const map={
+    same:['同频搭档',['你们同属一个元素，天然懂彼此的节奏，一个眼神就明白。','心意相通是你们最大的天赋，少解释、多并肩。','像照镜子一样的默契，珍惜这份难得的同频。']],
+    boost:['互补型搭档',['你们的元素彼此滋养，在一起会激发更好的自己。','一个点火、一个送风，合力能把事情推到新高度。','互补不是缺口，而是让彼此更完整的拼图。']],
+    clash:['欢喜冤家',['你们的元素相冲，摩擦里也藏着强烈的吸引力。','差异不是问题，学会用对方的语言说话最关键。','吵得越凶、和得越甜，是你们的专属剧本。']],
+    calm:['稳稳的陪伴',['你们的元素温和相融，关系稳定而舒服。','不必轰轰烈烈，日常的安心就是最深的情谊。','像一杯温茶，越品越有味道。']]
+  };
+  const m=map[kind];const lvl=kind==='same'?5:kind==='boost'?4:kind==='clash'?3:4;
+  const txt=m[1][Math.floor(Math.random()*m[1].length)];
+  return {title:m[0],stars:'★'.repeat(lvl)+'☆'.repeat(5-lvl),txt};
+}
+function doZodiac(){
+  const z=ZODIAC[zSelMe];
+  const friend=ZODIAC[zSelYou];
+  const rangeTxt={day:'今日',week:'本周',month:'本月'}[zRange];
+  const pr=pairInfo(zSelMe,zSelYou);
+  const r=document.getElementById('horoResult');
+  r.innerHTML=`
+   <div class="top"><div class="big">${rangeTxt} · 你的运势</div><div class="zname"><span class="ze">${z.i}</span> ${z.n}</div><div class="sub">${z.e} · ${z.d}</div></div>
+   <div class="dim4">
+     <div class="dim"><div class="h">💕 爱情</div><div class="st">${stars()}</div><div class="d">${pick(DIM_TXT.love)}</div></div>
+     <div class="dim"><div class="h">💼 事业</div><div class="st">${stars()}</div><div class="d">${pick(DIM_TXT.career)}</div></div>
+     <div class="dim"><div class="h">💰 财运</div><div class="st">${stars()}</div><div class="d">${pick(DIM_TXT.wealth)}</div></div>
+     <div class="dim"><div class="h">💪 健康</div><div class="st">${stars()}</div><div class="d">${pick(DIM_TXT.health)}</div></div>
+   </div>
+   <div class="luck">🔮 幸运色：<b>${pick(COLORS)}</b> ｜ 幸运数字：<b>${Math.floor(Math.random()*9)+1}</b> ｜ 幸运方位：<b>${pick(DIRS)}</b></div>
+   <div class="pair"><div class="ph">🤝 默契度 · 搭档指数（${z.n} × ${friend.n}）</div><div class="ps">${pr.stars}</div><div class="pd">${pr.title}：${pr.txt}</div></div>
+   <div class="advice">🌙 综合建议：今天不妨主动关心一下身边的朋友，好的关系都是处出来的。</div>`;
+  r.insertAdjacentHTML('beforeend',seerNote());
+  document.getElementById('zodiacGo').textContent='🌟 再算一次';
+}
+document.getElementById('zodiacGo').onclick=doZodiac;
+
+/* ====== 灵签 ====== */
+const SIGNS=[
+ {lv:1,cat:'all',poem:'云开见月正分明，万里风帆一日程。若问前程何处去，凤凰台上看升平。',jie:'上上之签，诸事亨通。所求皆遂，所谋皆成。把握当下良机，大胆前行，自有贵人相助、喜事临门。'},
+ {lv:1,cat:'career',poem:'蛟龙得水入云端，一举冲霄眼界宽。莫道前程无着力，扶摇直上九重天。',jie:'事业上上，如龙入海。长期积累将迎爆发，升职、转机、新机遇皆有可能。勇敢接住机会。'},
+ {lv:1,cat:'love',poem:'并蒂莲开映日红，佳人月下遇相逢。良缘本是前生定，琴瑟和鸣乐未穷。',jie:'姻缘上上，良缘天成。单身者将遇心动之人，有伴者感情更进。真诚相待，幸福绵长。'},
+ {lv:1,cat:'study',poem:'十年寒窗今朝开，金榜题名喜气来。笔底生花如有神，蟾宫折桂笑颜回。',jie:'学业上上，一举成名。考试、晋级的努力终见回报。保持状态，结果必不负你。'},
+ {lv:1,cat:'health',poem:'身似菩提心似镜，百病不侵自安宁。若问康宁何处觅，清风明月伴君行。',jie:'健康上上，身心安泰。旧疾渐愈，精神饱满。保持规律作息，福气长存。'},
+ {lv:1,cat:'wealth',poem:'财源滚滚似春潮，八方进宝乐逍遥。莫吝施仁多积德，金银满库胜前朝。',jie:'财运上上，财源广进。正财稳、偏财旺，投资经营皆利。取之有道、回馈善意。'},
+ {lv:2,cat:'all',poem:'花开富贵满庭芳，稳步青云路正长。但把闲心收拾好，荣华自在水中央。',jie:'上签，诸事顺遂。稳步前行即可收获。不必急躁，时机成熟自见成果。'},
+ {lv:2,cat:'career',poem:'舟行顺水趁东风，千里波涛一路通。若问前程何处去，云开日出见山青。',jie:'事业上签，顺水推舟。当前困扰将在不久迎来转机，把握时机勇敢推进。'},
+ {lv:2,cat:'love',poem:'月老红线暗中牵，好事将成不必言。莫负青春好光景，花前立誓结良缘。',jie:'姻缘上签，红线已牵。关系向好的方向发展，主动一点，缘分更牢。'},
+ {lv:2,cat:'study',poem:'书中有路通金殿，勤笃终能步广寒。莫道寒窗无知己，梅花香自苦寒还。',jie:'学业上签，勤能补拙。持续努力必有突破，考试可望佳绩。'},
+ {lv:2,cat:'health',poem:'和气致祥身自健，无忧无虑胜参苓。但教心胸常坦荡，四季平安过一生。',jie:'健康上签，平和即安康。情绪舒畅则百病不侵，保持豁达最要紧。'},
+ {lv:2,cat:'wealth',poem:'积善之家庆有余，经营稳妥渐丰肥。莫贪暴利求奇巧，细水长流财不违。',jie:'财运上签，稳中向好。踏实经营、理性理财，财富会慢慢厚实。'},
+ {lv:3,cat:'all',poem:'宝剑锋从磨砺出，梅花香自苦寒来。目前虽有些微阻，守得云开见月台。',jie:'中上签，先苦后甘。眼前小有波折，坚持与耐心将带你越过，终见成效。'},
+ {lv:3,cat:'career',poem:'磨刀不误砍柴工，蓄势待时气自雄。一旦风雷相激荡，扶摇直上碧霄中。',jie:'事业中上，蓄力待发。目前宜沉淀积累，时机一到便能乘势而起。'},
+ {lv:3,cat:'love',poem:'情丝千结待春风，莫叹无缘只在衷。自有良媒来引线，佳期不远笑芙蓉。',jie:'姻缘中上，渐入佳境。暂时未明的关系会慢慢清晰，别急，好戏在后头。'},
+ {lv:3,cat:'study',poem:'学海无涯勤是舟，目前小挫莫生愁。他日乘风破浪去，一举成名慰白头。',jie:'学业中上，挫折是阶梯。暂时的低谷只是提醒你调整方法，终会突破。'},
+ {lv:3,cat:'health',poem:'小恙无妨莫挂怀，调和不药自康哉。饮食清淡心常静，春日融融病自回。',jie:'健康中上，小症无碍。注意调养、饮食有节，身体自会恢复平衡。'},
+ {lv:3,cat:'wealth',poem:'生意如同逆水舟，稍懈便教向后流。守得诚信为根本，渐有盈余不必忧。',jie:'财运中上，需用心经营。不可松懈大意，诚信为本终能渐入佳境。'},
+ {lv:4,cat:'all',poem:'平途大道本无涯，行到中途暂驻车。守分随缘休强求，平安二字值千金。',jie:'中签，守成为上。凡事平平，无大喜亦无大忧。宜稳守本分，莫强求、莫冒进。'},
+ {lv:4,cat:'career',poem:'守株待兔未为迟，稳步徐行自有期。莫羡他人腾达去，安心立业自相宜。',jie:'事业中签，宜守不宜攻。当前宜巩固既有成果，冒进反易生波折。'},
+ {lv:4,cat:'love',poem:'缘来缘去本无心，强扭瓜儿滋味涩。且自开怀随分过，他年自有意中人。',jie:'姻缘中签，顺其自然。强求难美满，先照顾好自己，对的人会在合适时出现。'},
+ {lv:4,cat:'study',poem:'书山有路莫慌张，稳步徐登亦未央。他日功深自然悟，何须焦虑苦奔忙。',jie:'学业中签，平和以对。不必过度焦虑，按部就班自能渐入佳境。'},
+ {lv:4,cat:'health',poem:'身心调养贵安宁，劳逸相参自太平。莫为烦忧伤气血，宽怀自可保长生。',jie:'健康中签，重在平衡。劳逸结合、少烦忧，身体自然平稳无虞。'},
+ {lv:4,cat:'wealth',poem:'财如春水细流长，莫望横财一夜狂。守得平常勤俭意，温饱无忧度时光。',jie:'财运中签，平稳为主。不宜投机，勤俭持家、细水长流方为上策。'},
+ {lv:5,cat:'all',poem:'乌云暂蔽月华明，莫向人前诉不平。守得清心熬过夜，明朝依旧见天晴。',jie:'下签，宜守不宜动。当前运势偏低，诸事暂缓、谨言慎行，熬过这段便是转机。'},
+ {lv:5,cat:'career',poem:'逆水行舟力已疲，强求反惹是非随。不如暂息风波里，静待风平再展旗。',jie:'事业下签，宜退守。不宜冒进或强争，先保全、再图后。耐心等待时机。'},
+ {lv:5,cat:'love',poem:'月缺花残意未通，强牵红线总成空。且将心事付流水，自有相逢在梦中。',jie:'姻缘下签，暂难圆满。强求易生烦恼，放下执念、先修自身，缘分会重新安排。'},
+ {lv:5,cat:'study',poem:'灯下攻书意未通，心浮气躁总成空。且收书卷闲游去，开窍还须待好风。',jie:'学业下签，状态欠佳。勉强用功事倍功半，不妨放松调整，待状态回稳再战。'},
+ {lv:5,cat:'health',poem:'微恙缠身莫等闲，早寻良医保平安。若教拖延成隐患，悔教当初不看官。',jie:'健康下签，需留意。小病不可忽视，早检查、早调理，方能无虞。'},
+ {lv:5,cat:'wealth',poem:'求财好似水中月，看似分明捞不得。且守囊中现有物，免教破耗叹无奈。',jie:'财运下签，宜守不宜投。谨防破财、勿信暴利诱惑，守住现有最稳妥。'},
+ /* ===== 双人默契签（朋友/搭档视角，中性）===== */
+ {lv:1,cat:'duo',poem:'双星并耀照前程，挚友同心事竟成。莫道江湖无知己，并肩便是好风景。',jie:'上上之签！你与这位朋友气场相合、步调一致，是能一起把事做成的好搭档。珍惜这份默契，往后的路会越走越宽。',tip:'真正的兄弟，是不用多说就懂。'},
+ {lv:1,cat:'duo',poem:'同舟共济风波里，一笑拈来万事轻。若问相交何处好，青山踏遍见真情。',jie:'上上签！你们是能共渡风浪的伙伴，遇到难处彼此兜底。少点计较、多点信任，情谊只会更深。',tip:'困难时，他在，你就稳了。'},
+ {lv:2,cat:'duo',poem:'良朋如镜照肝胆，相视无言亦欣然。闲把心事轻轻诉，灯火阑珊见真缘。',jie:'上签！你与朋友心意相通，安静待着也舒服。别急着证明什么，相处的自在就是最好的证明。',tip:'能一起沉默，也是一种默契。'},
+ {lv:2,cat:'duo',poem:'春风一度百花香，两人同舟共一帆。莫怕前头波浪阔，齐心可渡万重山。',jie:'上签！你们是互补型搭档，一个主外一个主内最合适。有分歧时退半步、齐一心，再大的事也扛得住。',tip:'吵完架还能一起吃饭，就是真哥们。'},
+ {lv:3,cat:'duo',poem:'微云掩月未全遮，交情初深待物华。守得真心终有日，清辉还照并头花。',jie:'中上签。你们的关系正在升温，只是还需一点时间沉淀。耐心相处，自然越走越近。',tip:'慢慢处，时间会替你筛选真心。'},
+ {lv:3,cat:'duo',poem:'棋逢对手意未央，磨合些微莫挂肠。他日同心调玉烛，笑看人间岁月长。',jie:'中上签。各有棱角、小摩擦难免，却恰恰让彼此更合拍。多沟通、少猜疑，默契会自己长出来。',tip:'懂对方，是门要练的功课。'},
+ {lv:4,cat:'duo',poem:'平湖如镜偶生漪，相处随缘莫强羁。平淡之中藏真味，细水长流两相依。',jie:'中签。你们的关系平稳舒服，不必追求热闹。日常的陪伴与信任，就是最稳的情谊。',tip:'不常联系，但一直都在。'}
+];
+const LV_NAME={1:'上上签',2:'上签',3:'中上签',4:'中签',5:'下签'};
+let stickCat='all';
+bindOpts('stickCat','cat',v=>stickCat=v);
+function doStick(){
+  const wrap=document.getElementById('stickWrap');
+  const res=document.getElementById('stickResult');
+  res.innerHTML='';
+  wrap.innerHTML='<div class="stick shake">🎋</div>';
+  document.getElementById('stickGo').textContent='🎋 摇签中…';
+  setTimeout(()=>{
+    wrap.querySelector('.stick').classList.remove('shake');
+    let pool=SIGNS.filter(s=>s.cat===stickCat);
+    if(stickCat==='duo')pool=SIGNS.filter(s=>s.cat==='duo');
+    else if(pool.length<3)pool=SIGNS;
+    const s=pick(pool);
+    const no=Math.floor(Math.random()*100)+1;
+    wrap.innerHTML='<div class="stick">🎋</div>';
+    const head=stickCat==='duo'?`🤝 你与朋友的默契签`:`📜 第 ${no} 号签`;
+    res.innerHTML=`<div class="sign-result">
+      <div class="lv s${s.lv}">${LV_NAME[s.lv]}</div>
+      <div class="no">${head}</div>
+      <div class="poem">${s.poem}</div>
+      <div class="jie">📖 解签：${s.jie}</div>
+      ${s.tip?`<div class="tip">🌙 祖师提示：${s.tip}</div>`:''}
+    </div>`;
+    res.insertAdjacentHTML('beforeend',seerNote());
+    document.getElementById('stickGo').textContent='🎋 再摇一签';
+    res.scrollIntoView({behavior:'smooth',block:'center'});
+  },1100);
+}
+document.getElementById('stickGo').onclick=doStick;
+</script>
+</body>
+</html>
