@@ -84,6 +84,32 @@ header{display:flex;align-items:center;justify-content:space-between;padding:8px
 .t-result-card .card-rev{color:#ffb3d9;font-size:12px;margin-top:2px}
 .t-result-card .card-rev-hint{font-size:10px;opacity:.5;margin-top:2px}
 
+/* ====== 塔罗联合解读 ====== */
+.t-combined{background:linear-gradient(135deg,rgba(108,60,224,.18),rgba(233,30,140,.10));border:1px solid rgba(196,164,255,.25);border-radius:16px;padding:18px 16px;margin-bottom:18px;position:relative;overflow:hidden;box-shadow:0 4px 24px rgba(108,60,224,.15)}
+.t-combined::before{content:'✧';position:absolute;top:-30px;right:-10px;font-size:160px;opacity:.04;pointer-events:none;font-family:serif}
+.t-combined-header{text-align:center;font-size:13px;letter-spacing:4px;color:var(--gold);margin-bottom:10px;opacity:.85}
+.t-combined-image{text-align:center;font-size:14px;color:rgba(255,255,255,.95);line-height:1.7;margin-bottom:14px;padding:8px 6px;font-style:italic;letter-spacing:.5px;border-bottom:1px dashed rgba(255,255,255,.15);border-top:1px dashed rgba(255,255,255,.15)}
+.t-combined-meta{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:14px}
+.t-meta-chip{font-size:11px;padding:3px 10px;border-radius:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.85)}
+.t-meta-energy{background:rgba(233,30,140,.15);border-color:rgba(233,30,140,.4);color:#ffc4e1}
+.t-combined-section{margin-bottom:12px;padding:6px 0}
+.t-combined-section:last-child{margin-bottom:0}
+.t-section-title{font-size:12px;color:var(--gold);margin-bottom:6px;letter-spacing:1px;opacity:.9}
+.t-section-body{font-size:13px;line-height:1.75;color:rgba(255,255,255,.92)}
+.t-arc{display:flex;align-items:flex-start;gap:8px;padding:5px 0;font-size:13px;line-height:1.6}
+.t-arc-pos{flex-shrink:0;font-size:11px;background:rgba(108,60,224,.25);border:1px solid rgba(108,60,224,.4);color:#c4a4ff;padding:2px 8px;border-radius:6px;text-align:center;min-width:36px;margin-top:1px}
+.t-arc-text{flex:1;color:rgba(255,255,255,.92)}
+.t-arc-arrow{text-align:center;color:var(--gold);opacity:.4;font-size:14px;line-height:1;margin:0 0 0 18px;letter-spacing:2px}
+
+/* ====== 塔罗领域选择器 ====== */
+.domain-chip{padding:5px 10px;font-size:12px;border-radius:10px;cursor:pointer;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.7);transition:all .2s}
+.domain-chip.domain-active{background:rgba(108,60,224,.3);border-color:var(--purple);color:#fff;box-shadow:0 0 10px rgba(108,60,224,.2)}
+.domain-chip:hover:not(.domain-active){background:rgba(255,255,255,.1)}
+
+/* 塔罗领域徽章（解读页顶部） */
+.t-domain-badge{text-align:center;font-size:12px;color:var(--gold);margin-bottom:10px;letter-spacing:2px}
+.t-combined-badge{text-align:center;font-size:11px;letter-spacing:3px;color:rgba(255,255,255,.5);margin-bottom:4px}
+
 /* 星宫结果 */
 .horo-result .h-match{background:linear-gradient(135deg,rgba(108,60,224,.2),rgba(233,30,140,.2));border:1px solid rgba(108,60,224,.4);border-radius:14px;padding:14px;text-align:center;margin-bottom:10px}
 .h-match-score{font-size:36px;font-weight:bold;background:linear-gradient(135deg,#f1c40f,#e91e8c);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
@@ -174,6 +200,18 @@ footer .sep{opacity:.4}
       <div class="opts">
         <div class="opt active" onclick="setTarotMode('self',this)">单张·直觉</div>
         <div class="opt" onclick="setTarotMode('three',this)">三张·过去/现在/未来</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="font-size:12px;opacity:.6;margin-bottom:8px">占卜领域</div>
+      <div class="opts">
+        <div class="opt domain-active domain-chip" onclick="setTarotDomain('general',this)">✧ 通用</div>
+        <div class="opt domain-chip" onclick="setTarotDomain('love',this)">💕 爱情</div>
+        <div class="opt domain-chip" onclick="setTarotDomain('wealth',this)">💰 财运</div>
+        <div class="opt domain-chip" onclick="setTarotDomain('career',this)">💼 事业</div>
+        <div class="opt domain-chip" onclick="setTarotDomain('study',this)">📚 学业</div>
+        <div class="opt domain-chip" onclick="setTarotDomain('health',this)">🏥 健康</div>
       </div>
     </div>
 
@@ -311,6 +349,60 @@ const TAROT=[
  {n:20,cn:'审判',en:'Judgement',up:'觉醒、召唤、释然',rev:'自我批判、拖延决断',upT:'内在的号角响起。回顾来路，宽恕过往，是时候做出升华的抉择。',revT:'你在苛责旧日的自己。审判不是定罪，而是召唤你向前。'},
  {n:21,cn:'世界',en:'The World',up:'圆满、达成、轮回完成',rev:'未竟、停滞、缺口',upT:'一个周期圆满落幕，你抵达了期待的彼岸。庆祝，然后开启下一段。',revT:'还差最后一步。别在终点前松手，补全那块拼图。'}
 ];
+const TAROT_THEME={
+ 0:{n:'启程',arc:'新篇'},1:{n:'创造',arc:'新篇'},2:{n:'直觉',arc:'新篇'},
+ 3:{n:'滋养',arc:'行动'},4:{n:'秩序',arc:'行动'},5:{n:'传承',arc:'行动'},
+ 6:{n:'抉择',arc:'转折'},7:{n:'冲锋',arc:'转折'},8:{n:'柔韧',arc:'转折'},
+ 9:{n:'独照',arc:'内省'},10:{n:'轮转',arc:'转折'},11:{n:'裁决',arc:'转折'},
+ 12:{n:'等待',arc:'内省'},13:{n:'蜕变',arc:'转化'},14:{n:'调和',arc:'内省'},
+ 15:{n:'执念',arc:'转化'},16:{n:'突变',arc:'转化'},17:{n:'疗愈',arc:'内省'},
+ 18:{n:'迷途',arc:'内省'},19:{n:'光明',arc:'圆满'},20:{n:'觉醒',arc:'转化'},
+ 21:{n:'圆满',arc:'圆满'}
+};
+const TAROT_DOMAIN={
+ general:{name:'通用',icon:'✧',pos3:['☜ 过去','◆ 现在','未来 ☞'],pos1:'今日指引',
+  img:{a0:'「星辰齐明」——{t0}播下种子，{t1}正在盛放，{t2}即将成熟',a1:'「深渊之约」——{t0}沉入水底，{t1}暗中酝酿，{t2}等待破晓',a2:'「转动的门」——{t0}已成过往，{t1}的卡点正浮出，{t2}在等待',a3:'「未愈的旧伤」——{t0}的余波未平，{t1}正在发生，{t2}徐徐展开',a4:'「待破的茧」——{t0}已成过往，{t1}正在发生，{t2}的能量被遮蔽',a5:'「内外共振」——{t0}仍在回响，{t1}正在显化，{t2}需要主动开启',a6:'「蜕变时刻」——{t0}与{t1}都在调整，{t2}正徐徐展开'},
+  past:['你已走过「{t}」的章节，这是你力量的来源','你曾经历「{t}」的试炼，那些课题仍在心底回响'],
+  pres:['此刻你正站在「{t}」的舞台中央，这是核心当下','「{t}」的能量正被卡住或压抑——这是此刻最该正视的课题'],
+  fut:['前方「{t}」正徐徐展开，等待你顺势而为','前方「{t}」的能量被遮蔽，需要你主动开启'],
+  ins:['你','你'],arc:['你的过去与未来同属「{a}」弧线，你正在一个主题的闭环中精进','从「启程」走向「圆满」是一段完整的成长弧线','旧的圆满正在孕育新的开始——轮回正在转','从「向外掌控」转向「向内沉淀」是智慧的开端','独处后的内省正在转化为蜕变的燃料，破茧时刻临近','所有动荡都在为最终的整合做准备','两次转折的叠合，你正站在一个更大的命运节点上','从「{t0}」经由「{t1}」走向「{t2}」是一段专属于你的弧线'],
+  act:['让「{t}」的经验继续成为你的根基','先消化「{t}」留下的余波，别急着翻篇','全身心投入「{t}」的此刻','直面「{t}」的卡点，这是此刻的核心课题','信任「{t}」正在到来','主动创造「{t}」所需的土壤，别等它来']},
+ love:{name:'爱情',icon:'💕',pos3:['☜ 缘起','◆ 相处','未来 ☞'],pos1:'今日爱情指引',
+  img:{a0:'「红线牵引」——{t0}萌发爱意，{t1}正在升温，{t2}即将圆满',a1:'「心湖暗涌」——{t0}沉入记忆，{t1}正在发酵，{t2}等待破冰',a2:'「暧昧的雾」——{t0}已成往事，{t1}的卡点正浮出，{t2}在等待',a3:'「旧情未了」——{t0}的余波未平，{t1}正在发生，{t2}徐徐展开',a4:'「待开的花」——{t0}已成过往，{t1}正在发生，{t2}的能量被遮蔽',a5:'「心意暗通」——{t0}仍在回响，{t1}正在显化，{t2}需要主动开启',a6:'「磨合时分」——{t0}与{t1}都在调整，{t2}正徐徐展开'},
+  past:['你们的缘分从「{t}」的种子萌发，这段经历塑造了今天的你们','你们曾经历「{t}」的考验，那段磨合仍在心底回响'],
+  pres:['此刻你们的关系正站在「{t}」的关口，这是关键当下','「{t}」的能量在关系中被卡住——这是此刻最该正视的课题'],
+  fut:['前方「{t}」正徐徐展开，让爱顺势而行','前方「{t}」的能量被遮蔽，需要你们主动经营'],
+  ins:['在感情里','你们的感情'],arc:['你们的关系一直在「{a}」弧线中成长','从「心动」到「圆满」是一段完整的爱之旅','旧的圆满正在孕育新的开始','从「主动追求」到「内观相处」是成熟的开始','独处后的内省正在转化为更深的爱的能力','所有动荡都在为关系的最终整合做准备','两次关系转折的叠合，你们正站在感情的关键节点','从「{t0}」经由「{t1}」走向「{t2}」是专属于你们的感情弧线'],
+  act:['让「{t}」的相处方式继续滋养关系','先放下「{t}」带来的心结，给彼此一些空间','好好享受「{t}」带来的亲密当下','正视「{t}」在关系中的卡点，沟通是关键','让「{t}」的承诺自然生长','主动经营「{t}」，别等缘分自己来']},
+ wealth:{name:'财运',icon:'💰',pos3:['☜ 积累','◆ 流动','未来 ☞'],pos1:'今日财运指引',
+  img:{a0:'「财星高照」——{t0}积累财富，{t1}正在涌入，{t2}即将丰收',a1:'「深潜聚财」——{t0}沉入潜伏，{t1}暗中蓄力，{t2}等待破土',a2:'「瓶颈路口」——{t0}已成过往，{t1}的卡点正浮出，{t2}在等待',a3:'「旧账未清」——{t0}的余波未平，{t1}正在发生，{t2}徐徐展开',a4:'「未开的财门」——{t0}已成过往，{t1}正在发生，{t2}的能量被遮蔽',a5:'「暗流涌动」——{t0}仍在回响，{t1}正在显化，{t2}需要主动开启',a6:'「财运转折」——{t0}与{t1}都在调整，{t2}正徐徐展开'},
+  past:['你过去的财务基础建立在「{t}」之上，这是你的财富根基','你曾经历「{t}」的财务课题，那些经验仍在起作用'],
+  pres:['此刻你的财运正站在「{t}」的关口，这是核心当下','「{t}」的能量在财运中被卡住——这是该正视的课题'],
+  fut:['前方「{t}」正徐徐展开，让财顺势而来','前方「{t}」的能量被遮蔽，需要你主动开创'],
+  ins:['在财富领域','你的财运'],arc:['你的财务轨迹一直在「{a}」弧线中发展','从「积累」到「丰收」是一段完整的财务周期','旧的财富模式正在孕育新的机会','从「扩张」到「守成」是财富管理的智慧','独处思考正在转化为更好的财务决策','所有财务动荡都在为更大的丰收做准备','两次财务转折的叠合，你正站在财富的关键节点','从「{t0}」经由「{t1}」走向「{t2}」是专属于你的财富弧线'],
+  act:['让「{t}」的积累继续滚动','先稳住「{t}」相关的财务基础','抓住「{t}」的当下机会','检查「{t}」在哪里卡住了现金流','让「{t}」的财势自然到来','主动布局「{t}」的方向，别等财运自己来']},
+ career:{name:'事业',icon:'💼',pos3:['☜ 起点','◆ 突破','未来 ☞'],pos1:'今日事业指引',
+  img:{a0:'「阶梯攀升」——{t0}打牢根基，{t1}正在突破，{t2}即将登顶',a1:'「深耕期」——{t0}沉入磨练，{t1}暗中蓄力，{t2}等待破局',a2:'「瓶颈路口」——{t0}已成过往，{t1}的卡点正浮出，{t2}在等待',a3:'「旧模式未解」——{t0}的余波未平，{t1}正在发生，{t2}徐徐展开',a4:'「待启的窗」——{t0}已成过往，{t1}正在发生，{t2}的能量被遮蔽',a5:'「蓄势待发」——{t0}仍在回响，{t1}正在显化，{t2}需要主动开启',a6:'「职业转折」——{t0}与{t1}都在调整，{t2}正徐徐展开'},
+  past:['你的事业根基建立在「{t}」之上，这是你的职业底色','你曾经历「{t}」的磨练，那些课题仍在起作用'],
+  pres:['此刻你正站在「{t}」的事业关口，这是核心当下','「{t}」的能量在事业中被卡住——这是该正视的课题'],
+  fut:['前方「{t}」正徐徐展开，让事业顺势而起','前方「{t}」的能量被遮蔽，需要你主动突破'],
+  ins:['在事业上','你的事业'],arc:['你的职业轨迹一直在「{a}」弧线中发展','从「入行」到「成就」是一段完整的事业弧线','旧的事业阶段正在孕育新的方向','从「执行」到「战略」是领导力的升级','独处思考正在转化为更清晰的事业方向','所有事业动荡都在为更高的位置做准备','两次职业转折的叠合，你正站在事业的关键节点','从「{t0}」经由「{t1}」走向「{t2}」是专属于你的事业弧线'],
+  act:['让「{t}」成为事业的稳定基石','先调整「{t}」相关的工作状态','全力把握「{t}」的关键时刻','突破「{t}」卡住你职业发展的瓶颈','让「{t}」的事业前景自然展开','主动创造「{t}」的晋升条件']},
+ study:{name:'学业',icon:'📚',pos3:['☜ 基础','◆ 精进','未来 ☞'],pos1:'今日学业指引',
+  img:{a0:'「学海拾贝」——{t0}打牢基础，{t1}正在精进，{t2}即将收获',a1:'「深潜苦读」——{t0}沉入磨练，{t1}暗中蓄力，{t2}等待破茧',a2:'「卡点浮出」——{t0}已成过往，{t1}的瓶颈正显形，{t2}在等待',a3:'「旧知未化」——{t0}的余波未平，{t1}正在发生，{t2}徐徐展开',a4:'「待开的窍」——{t0}已成过往，{t1}正在发生，{t2}的能量被遮蔽',a5:'「暗潮涌动」——{t0}仍在回响，{t1}正在显化，{t2}需要主动开启',a6:'「学涯转折」——{t0}与{t1}都在调整，{t2}正徐徐展开'},
+  past:['你过去的学业基础建立在「{t}」之上，这是你的学习底色','你曾经历「{t}」的学业磨练，那些课题仍在起作用'],
+  pres:['此刻你正站在「{t}」的学业关口，这是核心当下','「{t}」的能量在学习中被卡住——这是该正视的课题'],
+  fut:['前方「{t}」正徐徐展开，让学业顺势而起','前方「{t}」的能量被遮蔽，需要你主动突破'],
+  ins:['在学业上','你的学业'],arc:['你的学习轨迹一直在「{a}」弧线中发展','从「入门」到「精深」是一段完整的学业弧线','旧的学习阶段正在孕育新的突破','从「积累」到「输出」是学习的飞跃','独处思考正在转化为更高效的学习方法','所有学业波动都在为最终的突破做准备','两次学业转折的叠合，你正站在学习的关键节点','从「{t0}」经由「{t1}」走向「{t2}」是专属于你的学业弧线'],
+  act:['让「{t}」的学习方法继续发光','先巩固「{t}」相关的知识基础','全力投入「{t}」的当前课题','找到「{t}」哪里卡住了学习进度','让「{t}」的学习成果自然显现','主动规划「{t}」的考试/学习方向']},
+ health:{name:'健康',icon:'🏥',pos3:['☜ 旧疾','◆ 调理','未来 ☞'],pos1:'今日健康指引',
+  img:{a0:'「生机流转」——{t0}滋养根基，{t1}正在调理，{t2}即将焕新',a1:'「深潜疗愈」——{t0}沉入记忆，{t1}暗中蓄力，{t2}等待破晓',a2:'「信号浮现」——{t0}已成过往，{t1}的卡点正浮出，{t2}在等待',a3:'「旧患未愈」——{t0}的余波未平，{t1}正在发生，{t2}徐徐展开',a4:'「待启的窗」——{t0}已成过往，{t1}正在发生，{t2}的能量被遮蔽',a5:'「暗流修复」——{t0}仍在回响，{t1}正在显化，{t2}需要主动开启',a6:'「身心灵转折」——{t0}与{t1}都在调整，{t2}正徐徐展开'},
+  past:['你过去的健康基础建立在「{t}」之上，这是你的身心底色','你曾经历「{t}」的身体课题，那些记忆仍在起作用'],
+  pres:['此刻你正站在「{t}」的健康关口，这是核心当下','「{t}」的能量在身心上被卡住——这是该正视的课题'],
+  fut:['前方「{t}」正徐徐展开，让健康顺势而来','前方「{t}」的能量被遮蔽，需要你主动调整'],
+  ins:['在身心健康上','你的身心'],arc:['你的健康轨迹一直在「{a}」弧线中发展','从「失衡」到「和谐」是一段完整的身心弧线','旧的健康模式正在孕育新的活力','从「消耗」到「滋养」是健康的智慧','独处与内观正在转化为更好的身心状态','所有身心波动都在为更大的疗愈做准备','两次健康转折的叠合，你正站在身心的关键节点','从「{t0}」经由「{t1}」走向「{t2}」是专属于你的身心弧线'],
+  act:['让「{t}」的健康习惯继续','先关注「{t}」相关的身体记忆','享受「{t}」带来的好状态','正视「{t}」对身心的卡点','让「{t}」的健康状态持续','主动调整「{t}」的生活节奏']}
+};
 const ICON=['🃏','🪄','🌙','👑','🏛️','🔑','💞','🛡️','🦁','🏮','🎡','⚖️','🙃','💀','🏺','😈','🗼','⭐','🌕','☀️','📯','🌍'];
 const ZODIAC=[
  {id:0,s:'♈',n:'白羊',el:'火🔥',tp:'先驱者',day:{love:'★★★★',career:'★★★★',wealth:'★★★',health:'★★★★',week:{love:'★★★',career:'★★★★',wealth:'★★★',health:'★★★★'},month:{love:'★★★',career:'★★★',wealth:'★★★',health:'★★★★'}}},
@@ -371,7 +463,7 @@ const MSGS_GUA=['星星不会说谎，只是有些话需要时间才能听懂。
 
 /* ====== 状态 ====== */
 let seer='jimmy';
-let tarotMode='self';
+let tarotMode='self',tarotDomain='general';
 let horoMode='single';
 let horoDim='day';
 let signCat='wisdom';
@@ -448,6 +540,13 @@ function setTarotMode(m,el){
   playSfx('click');
 }
 
+function setTarotDomain(d,el){
+  tarotDomain=d;
+  document.querySelectorAll('.domain-chip').forEach(e=>e.classList.remove('domain-active'));
+  el.classList.add('domain-active');
+  playSfx('click');
+}
+
 /* ====== 塔罗：洗牌展示 ====== */
 function startTarot(){
   playSfx('card');
@@ -508,12 +607,74 @@ function revealTarot(){
   setTimeout(()=>showTarotReading(),selectedTarot.length*400+300);
 }
 
+function genCombinedReading(cards,revs,domain){
+  const D=TAROT_DOMAIN[domain]||TAROT_DOMAIN.general;
+  const t0=TAROT_THEME[cards[0].n],t1=TAROT_THEME[cards[1].n],t2=TAROT_THEME[cards[2].n];
+  const revN=revs.filter(Boolean).length;
+  let imgKey;
+  if(revN===0)imgKey='a0';else if(revN===3)imgKey='a1';
+  else{const r=revs.indexOf(true);if(revs[1])imgKey='a6';else if(r===-1)imgKey='a5';else if(r===1)imgKey='a2';else if(r===0)imgKey='a3';else imgKey='a4';}
+  const image=D.img[imgKey].replace('{t0}',t0.n).replace('{t1}',t1.n).replace('{t2}',t2.n);
+  const energy=revN===0?'顺势上升':revN===3?'深度蜕变':revN===1?(revs[1]?'此刻的觉醒':'过渡期'):'重要转折';
+  const p0=revs[0]?1:0,q0=revs[1]?1:0,q2=revs[2]?1:0;
+  const pastText=D.past[p0].replace('{t}',t0.n);
+  const presText=D.pres[q0].replace('{t}',t1.n);
+  const futText=D.fut[q2].replace('{t}',t2.n);
+  let insightIdx=0;
+  if(t0.arc===t2.arc)insightIdx=0;
+  else if(t0.arc==='新篇'&&t2.arc==='圆满')insightIdx=1;
+  else if(t0.arc==='圆满'&&t2.arc==='新篇')insightIdx=2;
+  else if(t0.arc==='行动'&&t2.arc==='内省')insightIdx=3;
+  else if(t0.arc==='内省'&&t2.arc==='转化')insightIdx=4;
+  else if(t0.arc==='转化'&&t2.arc==='圆满')insightIdx=5;
+  else if(t0.arc==='转折'&&t2.arc==='转折')insightIdx=6;
+  else insightIdx=7;
+  let base=D.arc[insightIdx].replace('{a}',t0.arc).replace('{t0}',t0.n).replace('{t1}',t1.n).replace('{t2}',t2.n);
+  const insight=D.ins[0]+'，'+base+'。';
+  const a1=D.act[p0*2+(revs[0]?1:0)].replace('{t}',t0.n);
+  const a2=D.act[2+q0*2+(revs[1]?1:0)].replace('{t}',t1.n);
+  const a3=D.act[4+q2*2+(revs[2]?1:0)].replace('{t}',t2.n);
+  return{image,energy,pastText,presText,futText,insight,advice:a1+'；'+a2+'；'+a3+'。',domainName:D.name,domainIcon:D.icon};
+}
+
 function showTarotReading(){
-  const pos=tarotMode==='self'?['今日指引']:['☜ 过去','◆ 现在','未来 ☞'];
-  let html='<div style="text-align:center;margin-bottom:10px;font-size:12px;opacity:.6">✧ '+pick(tarotMode==='self'?MSGS_JIMMY:MSGS_JIMMY)+' ✧</div>';
+  const D=TAROT_DOMAIN[tarotDomain]||TAROT_DOMAIN.general;
+  const pos=tarotMode==='self'?[D.pos1]:D.pos3;
+  const revs=selectedTarot.map(()=>Math.random()<.35);
+  const cards=selectedTarot.map(s=>s.card);
+  const dom=tarotMode==='self'&&tarotDomain!=='general'?`<div class="t-domain-badge">${D.icon} ${D.name}</div>`:'';
+  let html=`<div style="text-align:center;margin-bottom:10px;font-size:12px;opacity:.6">✧ ${pick(MSGS_JIMMY)} ✧</div>`;
+  if(tarotMode==='three'&&selectedTarot.length===3){
+    const r=genCombinedReading(cards,revs,tarotDomain);
+    html+=`<div class="t-combined">
+      <div class="t-combined-badge">${r.domainIcon} ${r.domainName}</div>
+      <div class="t-combined-header">✦ 牌 阵 意 象 ✦</div>
+      <div class="t-combined-image">${r.image}</div>
+      <div class="t-combined-meta">
+        <span class="t-meta-chip">${cards[0].cn} → ${cards[1].cn} → ${cards[2].cn}</span>
+        <span class="t-meta-chip t-meta-energy">${r.energy}</span>
+      </div>
+      <div class="t-combined-section">
+        <div class="t-section-title">📖 故事线</div>
+        <div class="t-arc"><span class="t-arc-pos">${D.pos3[0].replace(/[☜◆未来 ☞]/g,'').trim()}</span><span class="t-arc-text">${r.pastText}。</span></div>
+        <div class="t-arc-arrow">↓</div>
+        <div class="t-arc"><span class="t-arc-pos">${D.pos3[1].replace(/[☜◆未来 ☞]/g,'').trim()}</span><span class="t-arc-text">${r.presText}。</span></div>
+        <div class="t-arc-arrow">↓</div>
+        <div class="t-arc"><span class="t-arc-pos">${D.pos3[2].replace(/[☜◆未来 ☞]/g,'').trim()}</span><span class="t-arc-text">${r.futText}。</span></div>
+      </div>
+      <div class="t-combined-section">
+        <div class="t-section-title">🔑 关键洞察</div>
+        <div class="t-section-body">${r.insight}</div>
+      </div>
+      <div class="t-combined-section">
+        <div class="t-section-title">🌟 行动建议</div>
+        <div class="t-section-body">${r.advice}</div>
+      </div>
+    </div>`;
+  }
   selectedTarot.forEach((s,i)=>{
-    const card=s.card;
-    const rev=Math.random()<.35;
+    const card=cards[i];
+    const rev=revs[i];
     const tip=rev?card.revT:card.upT;
     const label=pos[i]||pos[pos.length-1];
     html+=`<div class="t-result-card">
@@ -523,7 +684,7 @@ function showTarotReading(){
       <div class="card-en">${card.en}</div>
       <div class="${rev?'card-rev':'card-up'}">${rev?'逆位':'正位'}：${card[rev?'rev':'up']}</div>
       <div style="margin-top:6px;font-size:12px;color:rgba(255,255,255,.85)">${tip}</div>
-      ${rev?'<div class="card-rev-hint">（逆位提醒：${card.upT}）</div>':''}
+      ${rev?`<div class="card-rev-hint">（逆位提醒：${card.upT}）</div>`:''}
     </div>`;
   });
   document.getElementById('tarotReading').innerHTML=html;
