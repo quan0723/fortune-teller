@@ -320,8 +320,134 @@ function makeReverb(ctx,dur){const conv=ctx.createConvolver();const rate=ctx.sam
 function playSfx(type){if(!sfxOn)return;const ctx=getAudioCtx();const now=ctx.currentTime;const master=ctx.createGain();master.gain.setValueAtTime(.18,now);master.connect(ctx.destination);if(type==='click'){const o=ctx.createOscillator();const g=ctx.createGain();o.type='sine';o.frequency.setValueAtTime(880,now);o.frequency.exponentialRampToValueAtTime(440,now+.08);g.gain.setValueAtTime(.4,now);g.gain.exponentialRampToValueAtTime(.001,now+.15);o.connect(g);g.connect(master);o.start(now);o.stop(now+.15);}else if(type==='card'){const o=ctx.createOscillator();const g=ctx.createGain();o.type='triangle';o.frequency.setValueAtTime(220,now);o.frequency.setValueAtTime(330,now+.05);o.frequency.setValueAtTime(440,now+.1);g.gain.setValueAtTime(.5,now);g.gain.exponentialRampToValueAtTime(.001,now+.3);o.connect(g);g.connect(master);o.start(now);o.stop(now+.3);const buf=ctx.createBuffer(1,ctx.sampleRate*.1,ctx.sampleRate);const ch=buf.getChannelData(0);for(let i=0;i<ch.length;i++)ch[i]=(Math.random()*2-.5)*Math.pow(1-i/ch.length,3);const src=ctx.createBufferSource();src.buffer=buf;const rg=ctx.createGain();rg.gain.setValueAtTime(.3,now);rg.gain.exponentialRampToValueAtTime(.001,now+.1);src.connect(rg);rg.connect(master);src.start(now);}else if(type==='reveal'){const o=ctx.createOscillator();const g=ctx.createGain();o.type='sine';o.frequency.setValueAtTime(523,now);o.frequency.setValueAtTime(659,now+.1);o.frequency.setValueAtTime(784,now+.2);o.frequency.setValueAtTime(1047,now+.3);g.gain.setValueAtTime(.4,now);g.gain.exponentialRampToValueAtTime(.001,now+.6);o.connect(g);g.connect(master);o.start(now);o.stop(now+.6);}else if(type==='shake'){const buf=ctx.createBuffer(1,ctx.sampleRate*.4,ctx.sampleRate);const ch=buf.getChannelData(0);for(let i=0;i<ch.length;i++)ch[i]=(Math.random()*2-.5)*Math.pow(1-i/ch.length,2);const src=ctx.createBufferSource();src.buffer=buf;const f=ctx.createBiquadFilter();f.type='bandpass';f.frequency.value=2000;f.Q.value=1;const rg=ctx.createGain();rg.gain.setValueAtTime(.5,now);rg.gain.exponentialRampToValueAtTime(.001,now+.4);src.connect(f);f.connect(rg);rg.connect(master);src.start(now);}}
 function toggleSfx(){sfxOn=!sfxOn;document.getElementById('sfxBtn').classList.toggle('on',sfxOn);playSfx('click');}
 function toggleBgm(){bgmOn=!bgmOn;document.getElementById('bgmBtn').classList.toggle('on',bgmOn);if(bgmOn){playBgm();}else{stopBgm();}playSfx('click');}
-function playBgm(){stopBgm();const ctx=getAudioCtx();bgmGain=ctx.createGain();bgmGain.gain.setValueAtTime(0,ctx.currentTime);bgmGain.gain.linearRampToValueAtTime(.08,ctx.currentTime+2);const rev=makeReverb(ctx,3);rev.connect(ctx.destination);bgmGain.connect(rev);bgmGain.connect(ctx.destination);const freqs=[65.41,98,130.81,196,261.63];freqs.forEach((f,i)=>{const o=ctx.createOscillator();o.type='sine';o.frequency.value=f;const g=ctx.createGain();g.gain.value=.4/(i+1);o.connect(g);g.connect(bgmGain);o.start();bgmOscs.push(o);});}
-function stopBgm(){bgmOscs.forEach(o=>{try{o.stop();}catch(e){}});bgmOscs=[];if(bgmGain&&audioCtx){bgmGain.gain.linearRampToValueAtTime(0,audioCtx.currentTime+1);}setTimeout(()=>{bgmGain=null;},1200);}
+/* ====== 背景音乐：生成式氛围（颂钵 drone + 缓板和弦 + 手碟风铃） ====== */
+function stopBgm(){
+  if(bgmTimer){clearInterval(bgmTimer);bgmTimer=null;}
+  bgmOscs.forEach(o=>{try{o.stop();}catch(e){}});
+  bgmOscs=[];
+  const g=bgmGain;
+  if(g&&audioCtx){
+    try{g.gain.cancelScheduledValues(audioCtx.currentTime);}catch(e){}
+    g.gain.linearRampToValueAtTime(0,audioCtx.currentTime+1.0);
+  }
+  setTimeout(()=>{ if(bgmGain===g) bgmGain=null; },1200);
+}
+function playBgm(){
+  stopBgm();
+  const ctx=getAudioCtx();
+  const now=ctx.currentTime;
+  bgmGain=ctx.createGain();
+  bgmGain.gain.setValueAtTime(0,now);
+  bgmGain.gain.linearRampToValueAtTime(.42,now+2.5);
+  // 混响：更短更通透，避免"闷/压抑"
+  const rev=makeReverb(ctx,2.2);
+  const wet=ctx.createGain(); wet.gain.value=.42;
+  const dry=ctx.createGain(); dry.gain.value=.72;
+  bgmGain.connect(dry); dry.connect(ctx.destination);
+  bgmGain.connect(wet); wet.connect(rev); rev.connect(ctx.destination);
+  // 1) 中频明亮 drone：C3 + 纯五度 G3（手机喇叭也清晰），加一层高八度 air
+  function drone(freq,amp,type){
+    const o=ctx.createOscillator(); o.type=type||'sine'; o.frequency.value=freq;
+    const o2=ctx.createOscillator(); o2.type=type||'sine'; o2.frequency.value=freq*1.005;
+    const g=ctx.createGain(); g.gain.value=amp;
+    o.connect(g); o2.connect(g); g.connect(bgmGain);
+    o.start(now); o2.start(now); bgmOscs.push(o,o2);
+    return g;
+  }
+  const rootG=drone(130.81,.20,'sine');   // C3 温暖基音
+  drone(196.00,.11,'sine');               // G3 纯五度（明亮稳定）
+  drone(523.25,.035,'triangle');          // C5 air 层（通透）
+  const lfo=ctx.createOscillator(); lfo.frequency.value=.06;
+  const lfoG=ctx.createGain(); lfoG.gain.value=.09;
+  lfo.connect(lfoG); lfoG.connect(rootG.gain); lfo.start(now); bgmOscs.push(lfo);
+  // 2) 大调 pad：C - G - Am - F（明亮上扬，温和不伤感）
+  const PROG=[
+    [261.63,329.63,392.00],   // C  大调 I
+    [392.00,493.88,587.33],   // G  大调 V
+    [220.00,261.63,329.63],   // Am vi（柔和过渡）
+    [349.23,440.00,523.25]    // F  大调 IV
+  ];
+  // 3) 钢片琴风铃：C 大调五声音阶（明亮）
+  const BELL=[523.25,587.33,659.25,783.99,880.00,1046.50,1174.66,1318.51];
+  const SHIM=[1567.98,1760.00,2093.00];
+  function pad(chord){
+    const t=ctx.currentTime;
+    chord.forEach((f,i)=>{
+      const o=ctx.createOscillator();
+      o.type = i===0 ? 'triangle' : 'sine';
+      o.frequency.value=f; o.detune.value=(Math.random()*8-4);
+      const g=ctx.createGain(); const peak=.075/(i*0.5+1);
+      g.gain.setValueAtTime(0,t);
+      g.gain.linearRampToValueAtTime(peak,t+2.2);
+      g.gain.setValueAtTime(peak,t+5);
+      g.gain.linearRampToValueAtTime(0,t+9.5);
+      o.connect(g); g.connect(bgmGain); o.start(t); o.stop(t+9.7);
+    });
+  }
+  function bell(mult){
+    const f=BELL[Math.floor(Math.random()*BELL.length)]*(mult||1);
+    const t=ctx.currentTime;
+    const o=ctx.createOscillator(); o.type='sine'; o.frequency.value=f;
+    const g=ctx.createGain();
+    g.gain.setValueAtTime(0,t);
+    g.gain.linearRampToValueAtTime(.10,t+.01);
+    g.gain.exponentialRampToValueAtTime(.0006,t+3.2);
+    o.connect(g); g.connect(bgmGain); o.start(t); o.stop(t+3.3);
+    // 2x 泛音（钢片琴明亮感）
+    const o2=ctx.createOscillator(); o2.type='sine'; o2.frequency.value=f*2;
+    const g2=ctx.createGain();
+    g2.gain.setValueAtTime(0,t);
+    g2.gain.linearRampToValueAtTime(.035,t+.008);
+    g2.gain.exponentialRampToValueAtTime(.0004,t+1.4);
+    o2.connect(g2); g2.connect(bgmGain); o2.start(t); o2.stop(t+1.5);
+    // 4.2x 高频铃响（风铃感）
+    const o3=ctx.createOscillator(); o3.type='sine'; o3.frequency.value=f*4.2;
+    const g3=ctx.createGain();
+    g3.gain.setValueAtTime(0,t);
+    g3.gain.linearRampToValueAtTime(.016,t+.006);
+    g3.gain.exponentialRampToValueAtTime(.0003,t+0.9);
+    o3.connect(g3); g3.connect(bgmGain); o3.start(t); o3.stop(t+1.0);
+  }
+  function shimmer(){
+    const f=SHIM[Math.floor(Math.random()*SHIM.length)];
+    const t=ctx.currentTime;
+    const o=ctx.createOscillator(); o.type='sine';
+    o.frequency.setValueAtTime(f,t);
+    o.frequency.exponentialRampToValueAtTime(f*1.35,t+2.2);
+    const g=ctx.createGain();
+    g.gain.setValueAtTime(0,t);
+    g.gain.linearRampToValueAtTime(.018,t+.7);
+    g.gain.exponentialRampToValueAtTime(.0004,t+2.6);
+    o.connect(g); g.connect(bgmGain); o.start(t); o.stop(t+2.7);
+  }
+  // 缓板旋律句：C 大调五声缓缓上行，像手碟 / 音乐盒
+  function phrase(){
+    const seq=[0,2,4,5,7,5,4,2,0,2,4,7];
+    const n=3+Math.floor(Math.random()*3);
+    let t=ctx.currentTime;
+    const start=Math.floor(Math.random()*5);
+    for(let i=0;i<n;i++){
+      const f=BELL[(start+seq[(i*2)%seq.length])%BELL.length];
+      const o=ctx.createOscillator(); o.type='sine'; o.frequency.value=f;
+      const g=ctx.createGain();
+      g.gain.setValueAtTime(0,t);
+      g.gain.linearRampToValueAtTime(.062,t+.03);
+      g.gain.exponentialRampToValueAtTime(.0005,t+3.0);
+      o.connect(g); g.connect(bgmGain); o.start(t); o.stop(t+3.1);
+      t+=0.7+Math.random()*0.5;
+    }
+  }
+  let step=0;
+  pad(PROG[0]);
+  bgmTimer=setInterval(()=>{
+    step++;
+    if(step%2===0){ pad(PROG[(step/2)%PROG.length|0]); }
+    if(Math.random()<.5) bell(1);
+    if(Math.random()<.15) bell(2);
+    if(step%6===0) phrase();
+    if(step%12===0) shimmer();
+  },4500);
+}
 
 /* ====== 常量 ====== */
 const ME='Jimmy',YOU='瓜';
@@ -360,63 +486,213 @@ const TAROT_THEME={
  21:{n:'圆满',arc:'圆满'}
 };
 const TAROT_DOMAIN={
- general:{name:'通用',icon:'✧',pos3:['☜ 过去','◆ 现在','未来 ☞'],pos1:'今日指引',
-  img:{a0:'「星辰齐明」——{t0}播下种子，{t1}正在盛放，{t2}即将成熟',a1:'「深渊之约」——{t0}沉入水底，{t1}暗中酝酿，{t2}等待破晓',a2:'「转动的门」——{t0}已成过往，{t1}的卡点正浮出，{t2}在等待',a3:'「未愈的旧伤」——{t0}的余波未平，{t1}正在发生，{t2}徐徐展开',a4:'「待破的茧」——{t0}已成过往，{t1}正在发生，{t2}的能量被遮蔽',a5:'「内外共振」——{t0}仍在回响，{t1}正在显化，{t2}需要主动开启',a6:'「蜕变时刻」——{t0}与{t1}都在调整，{t2}正徐徐展开'},
-  past:['你已走过「{t}」的章节，这是你力量的来源','你曾经历「{t}」的试炼，那些课题仍在心底回响'],
-  pres:['此刻你正站在「{t}」的舞台中央，这是核心当下','「{t}」的能量正被卡住或压抑——这是此刻最该正视的课题'],
-  fut:['前方「{t}」正徐徐展开，等待你顺势而为','前方「{t}」的能量被遮蔽，需要你主动开启'],
-  ins:['你','你'],arc:['你的过去与未来同属「{a}」弧线，你正在一个主题的闭环中精进','从「启程」走向「圆满」是一段完整的成长弧线','旧的圆满正在孕育新的开始——轮回正在转','从「向外掌控」转向「向内沉淀」是智慧的开端','独处后的内省正在转化为蜕变的燃料，破茧时刻临近','所有动荡都在为最终的整合做准备','两次转折的叠合，你正站在一个更大的命运节点上','从「{t0}」经由「{t1}」走向「{t2}」是一段专属于你的弧线'],
-  act:['让「{t}」的经验继续成为你的根基','先消化「{t}」留下的余波，别急着翻篇','全身心投入「{t}」的此刻','直面「{t}」的卡点，这是此刻的核心课题','信任「{t}」正在到来','主动创造「{t}」所需的土壤，别等它来']},
- love:{name:'爱情',icon:'💕',pos3:['☜ 缘起','◆ 相处','未来 ☞'],pos1:'今日爱情指引',
-  img:{a0:'「红线牵引」——{t0}萌发爱意，{t1}正在升温，{t2}即将圆满',a1:'「心湖暗涌」——{t0}沉入记忆，{t1}正在发酵，{t2}等待破冰',a2:'「暧昧的雾」——{t0}已成往事，{t1}的卡点正浮出，{t2}在等待',a3:'「旧情未了」——{t0}的余波未平，{t1}正在发生，{t2}徐徐展开',a4:'「待开的花」——{t0}已成过往，{t1}正在发生，{t2}的能量被遮蔽',a5:'「心意暗通」——{t0}仍在回响，{t1}正在显化，{t2}需要主动开启',a6:'「磨合时分」——{t0}与{t1}都在调整，{t2}正徐徐展开'},
-  past:['你们的缘分从「{t}」的种子萌发，这段经历塑造了今天的你们','你们曾经历「{t}」的考验，那段磨合仍在心底回响'],
-  pres:['此刻你们的关系正站在「{t}」的关口，这是关键当下','「{t}」的能量在关系中被卡住——这是此刻最该正视的课题'],
-  fut:['前方「{t}」正徐徐展开，让爱顺势而行','前方「{t}」的能量被遮蔽，需要你们主动经营'],
-  ins:['在感情里','你们的感情'],arc:['你们的关系一直在「{a}」弧线中成长','从「心动」到「圆满」是一段完整的爱之旅','旧的圆满正在孕育新的开始','从「主动追求」到「内观相处」是成熟的开始','独处后的内省正在转化为更深的爱的能力','所有动荡都在为关系的最终整合做准备','两次关系转折的叠合，你们正站在感情的关键节点','从「{t0}」经由「{t1}」走向「{t2}」是专属于你们的感情弧线'],
-  act:['让「{t}」的相处方式继续滋养关系','先放下「{t}」带来的心结，给彼此一些空间','好好享受「{t}」带来的亲密当下','正视「{t}」在关系中的卡点，沟通是关键','让「{t}」的承诺自然生长','主动经营「{t}」，别等缘分自己来']},
- wealth:{name:'财运',icon:'💰',pos3:['☜ 积累','◆ 流动','未来 ☞'],pos1:'今日财运指引',
-  img:{a0:'「财星高照」——{t0}积累财富，{t1}正在涌入，{t2}即将丰收',a1:'「深潜聚财」——{t0}沉入潜伏，{t1}暗中蓄力，{t2}等待破土',a2:'「瓶颈路口」——{t0}已成过往，{t1}的卡点正浮出，{t2}在等待',a3:'「旧账未清」——{t0}的余波未平，{t1}正在发生，{t2}徐徐展开',a4:'「未开的财门」——{t0}已成过往，{t1}正在发生，{t2}的能量被遮蔽',a5:'「暗流涌动」——{t0}仍在回响，{t1}正在显化，{t2}需要主动开启',a6:'「财运转折」——{t0}与{t1}都在调整，{t2}正徐徐展开'},
-  past:['你过去的财务基础建立在「{t}」之上，这是你的财富根基','你曾经历「{t}」的财务课题，那些经验仍在起作用'],
-  pres:['此刻你的财运正站在「{t}」的关口，这是核心当下','「{t}」的能量在财运中被卡住——这是该正视的课题'],
-  fut:['前方「{t}」正徐徐展开，让财顺势而来','前方「{t}」的能量被遮蔽，需要你主动开创'],
-  ins:['在财富领域','你的财运'],arc:['你的财务轨迹一直在「{a}」弧线中发展','从「积累」到「丰收」是一段完整的财务周期','旧的财富模式正在孕育新的机会','从「扩张」到「守成」是财富管理的智慧','独处思考正在转化为更好的财务决策','所有财务动荡都在为更大的丰收做准备','两次财务转折的叠合，你正站在财富的关键节点','从「{t0}」经由「{t1}」走向「{t2}」是专属于你的财富弧线'],
-  act:['让「{t}」的积累继续滚动','先稳住「{t}」相关的财务基础','抓住「{t}」的当下机会','检查「{t}」在哪里卡住了现金流','让「{t}」的财势自然到来','主动布局「{t}」的方向，别等财运自己来']},
- career:{name:'事业',icon:'💼',pos3:['☜ 起点','◆ 突破','未来 ☞'],pos1:'今日事业指引',
-  img:{a0:'「阶梯攀升」——{t0}打牢根基，{t1}正在突破，{t2}即将登顶',a1:'「深耕期」——{t0}沉入磨练，{t1}暗中蓄力，{t2}等待破局',a2:'「瓶颈路口」——{t0}已成过往，{t1}的卡点正浮出，{t2}在等待',a3:'「旧模式未解」——{t0}的余波未平，{t1}正在发生，{t2}徐徐展开',a4:'「待启的窗」——{t0}已成过往，{t1}正在发生，{t2}的能量被遮蔽',a5:'「蓄势待发」——{t0}仍在回响，{t1}正在显化，{t2}需要主动开启',a6:'「职业转折」——{t0}与{t1}都在调整，{t2}正徐徐展开'},
-  past:['你的事业根基建立在「{t}」之上，这是你的职业底色','你曾经历「{t}」的磨练，那些课题仍在起作用'],
-  pres:['此刻你正站在「{t}」的事业关口，这是核心当下','「{t}」的能量在事业中被卡住——这是该正视的课题'],
-  fut:['前方「{t}」正徐徐展开，让事业顺势而起','前方「{t}」的能量被遮蔽，需要你主动突破'],
-  ins:['在事业上','你的事业'],arc:['你的职业轨迹一直在「{a}」弧线中发展','从「入行」到「成就」是一段完整的事业弧线','旧的事业阶段正在孕育新的方向','从「执行」到「战略」是领导力的升级','独处思考正在转化为更清晰的事业方向','所有事业动荡都在为更高的位置做准备','两次职业转折的叠合，你正站在事业的关键节点','从「{t0}」经由「{t1}」走向「{t2}」是专属于你的事业弧线'],
-  act:['让「{t}」成为事业的稳定基石','先调整「{t}」相关的工作状态','全力把握「{t}」的关键时刻','突破「{t}」卡住你职业发展的瓶颈','让「{t}」的事业前景自然展开','主动创造「{t}」的晋升条件']},
- study:{name:'学业',icon:'📚',pos3:['☜ 基础','◆ 精进','未来 ☞'],pos1:'今日学业指引',
-  img:{a0:'「学海拾贝」——{t0}打牢基础，{t1}正在精进，{t2}即将收获',a1:'「深潜苦读」——{t0}沉入磨练，{t1}暗中蓄力，{t2}等待破茧',a2:'「卡点浮出」——{t0}已成过往，{t1}的瓶颈正显形，{t2}在等待',a3:'「旧知未化」——{t0}的余波未平，{t1}正在发生，{t2}徐徐展开',a4:'「待开的窍」——{t0}已成过往，{t1}正在发生，{t2}的能量被遮蔽',a5:'「暗潮涌动」——{t0}仍在回响，{t1}正在显化，{t2}需要主动开启',a6:'「学涯转折」——{t0}与{t1}都在调整，{t2}正徐徐展开'},
-  past:['你过去的学业基础建立在「{t}」之上，这是你的学习底色','你曾经历「{t}」的学业磨练，那些课题仍在起作用'],
-  pres:['此刻你正站在「{t}」的学业关口，这是核心当下','「{t}」的能量在学习中被卡住——这是该正视的课题'],
-  fut:['前方「{t}」正徐徐展开，让学业顺势而起','前方「{t}」的能量被遮蔽，需要你主动突破'],
-  ins:['在学业上','你的学业'],arc:['你的学习轨迹一直在「{a}」弧线中发展','从「入门」到「精深」是一段完整的学业弧线','旧的学习阶段正在孕育新的突破','从「积累」到「输出」是学习的飞跃','独处思考正在转化为更高效的学习方法','所有学业波动都在为最终的突破做准备','两次学业转折的叠合，你正站在学习的关键节点','从「{t0}」经由「{t1}」走向「{t2}」是专属于你的学业弧线'],
-  act:['让「{t}」的学习方法继续发光','先巩固「{t}」相关的知识基础','全力投入「{t}」的当前课题','找到「{t}」哪里卡住了学习进度','让「{t}」的学习成果自然显现','主动规划「{t}」的考试/学习方向']},
- health:{name:'健康',icon:'🏥',pos3:['☜ 旧疾','◆ 调理','未来 ☞'],pos1:'今日健康指引',
-  img:{a0:'「生机流转」——{t0}滋养根基，{t1}正在调理，{t2}即将焕新',a1:'「深潜疗愈」——{t0}沉入记忆，{t1}暗中蓄力，{t2}等待破晓',a2:'「信号浮现」——{t0}已成过往，{t1}的卡点正浮出，{t2}在等待',a3:'「旧患未愈」——{t0}的余波未平，{t1}正在发生，{t2}徐徐展开',a4:'「待启的窗」——{t0}已成过往，{t1}正在发生，{t2}的能量被遮蔽',a5:'「暗流修复」——{t0}仍在回响，{t1}正在显化，{t2}需要主动开启',a6:'「身心灵转折」——{t0}与{t1}都在调整，{t2}正徐徐展开'},
-  past:['你过去的健康基础建立在「{t}」之上，这是你的身心底色','你曾经历「{t}」的身体课题，那些记忆仍在起作用'],
-  pres:['此刻你正站在「{t}」的健康关口，这是核心当下','「{t}」的能量在身心上被卡住——这是该正视的课题'],
-  fut:['前方「{t}」正徐徐展开，让健康顺势而来','前方「{t}」的能量被遮蔽，需要你主动调整'],
-  ins:['在身心健康上','你的身心'],arc:['你的健康轨迹一直在「{a}」弧线中发展','从「失衡」到「和谐」是一段完整的身心弧线','旧的健康模式正在孕育新的活力','从「消耗」到「滋养」是健康的智慧','独处与内观正在转化为更好的身心状态','所有身心波动都在为更大的疗愈做准备','两次健康转折的叠合，你正站在身心的关键节点','从「{t0}」经由「{t1}」走向「{t2}」是专属于你的身心弧线'],
-  act:['让「{t}」的健康习惯继续','先关注「{t}」相关的身体记忆','享受「{t}」带来的好状态','正视「{t}」对身心的卡点','让「{t}」的健康状态持续','主动调整「{t}」的生活节奏']}
+ general:{name:'通用',icon:'✧',pos3:['☜ 过去','◆ 现在','☞ 前路'],pos1:'今日指引',
+  img:{
+    a0:'顺流而上的好牌：{c0} → {c1} → {c2}，整体趋势正面。',
+    a1:'三张牌都提示暂时困难：{c0} → {c1} → {c2}，这段时间需要耐心。',
+    a2:'过去已定，现在卡住了：{c1} 是你接下来要面对的核心。',
+    a3:'过去的功课还在回响：看清「{c0}」留下的痕迹会帮到你。',
+    a4:'未来暂时看不清：先把「{c1}」过好，未来自然会清晰。',
+    a5:'整体偏稳，但需要你主动推一把——{c2} 不会自己来。',
+    a6:'现在正在转折：{c1} 是你这阶段最重要的功课。'
+  },
+  past:['你的「过去」是「{c}」：{m}','你的「过去」是「{c}」（逆位）：{m}'],
+  pres:['你的「现在」是「{c}」：{m}','你的「现在」是「{c}」（逆位）：{m}'],
+  fut:['「未来」指向「{c}」：{m}','「未来」指向「{c}」（逆位）：{m}'],
+  ins:['整体来看','在生活层面'],
+  arc:[
+    '三张牌主题一致，「{a0}」这条线在你身上反复出现——这是你近期最重要的课题。',
+    '从「{a0}」走向「{a2}」，这是一条完整的上升路径——好事在来的路上。',
+    '「{a0}」与「{a2}」相遇，旧篇章在收尾，新故事即将开始。',
+    '你正从「{a0}」转入「{a2}」——从"动"到"静"，停下来想清楚比继续冲更重要。',
+    '你处在「{a0}」的内在蜕变期——再坚持一下，质变就快到了。',
+    '「{a0}」已过大半，「{a2}」的成果即将显现——稳住。',
+    '「{a0}」与「{a2}」双重转折叠在一起——一次更大的转变就在前面。',
+    '专属于你的 {c0} → {c1} → {c2} 弧线——这是只属于你这一次的路径。'
+  ],
+  act:[
+    '让「{c}」的正向能量继续成为你的根基。',
+    '先放下「{c}」逆位带来的纠结或教训，不必反复回看。',
+    '全身心投入「{c}」的当下，享受这段时光。',
+    '正视「{c}」逆位带来的卡点，找个信任的人聊聊。',
+    '顺势而为，「{c}」的礼物在前面等你。',
+    '主动为「{c}」创造条件，别等它自己来。'
+  ]},
+ love:{name:'爱情',icon:'💕',pos3:['☜ 缘起','◆ 相处','☞ 前路'],pos1:'今日爱情指引',
+  img:{
+    a0:'感情顺流期：{c0} → {c1} → {c2}，三个阶段都支持你。',
+    a1:'感情的低谷：{c0} → {c1} → {c2}，需要给彼此一些时间。',
+    a2:'过去的已经过去，现在的相处是重点：{c1} 提示你接下来怎么做。',
+    a3:'过去的感情模式还在影响你：看清「{c0}」那一课会帮到你。',
+    a4:'未来的感情走向暂时不明：先把「{c1}」的相处过好。',
+    a5:'关系整体稳定，但需要你主动经营——{c2} 不会自己来。',
+    a6:'现在正在转折：{c1} 是你这阶段最重要的功课。'
+  },
+  past:['你们的「缘起」是「{c}」：{m}','你们的「缘起」是「{c}」（逆位）：{m}'],
+  pres:['你们的「相处」是「{c}」：{m}','你们的「相处」是「{c}」（逆位）：{m}'],
+  fut:['「未来」指向「{c}」：{m}','「未来」指向「{c}」（逆位）：{m}'],
+  ins:['在感情里','你们的感情'],
+  arc:[
+    '三张牌主题一致，「{a0}」这条线在你们关系里反复出现——这是你们近期最重要的课题。',
+    '从「{a0}」走向「{a2}」，这是感情里一条完整的上升路径——好事在来的路上。',
+    '「{a0}」与「{a2}」相遇，旧的篇章在收尾，新的故事即将开始。',
+    '你们正从「{a0}」转入「{a2}」——从热切到沉淀，慢下来想清楚比继续冲更重要。',
+    '你们处在「{a0}」的内在蜕变期——再坚持一下，关系会有质的变化。',
+    '「{a0}」已过大半，「{a2}」的成果即将显现——稳住。',
+    '「{a0}」与「{a2}」双重转折叠在一起——一段关系的升级就在前面。',
+    '专属于你们的 {c0} → {c1} → {c2} 弧线——这是只属于你们这一次的路径。'
+  ],
+  act:[
+    '让「{c}」的正向能量继续滋养你们的关系。',
+    '先放下「{c}」逆位带来的心结或旧伤，给彼此一些空间。',
+    '全身心享受「{c}」的当下，这段时间是你们最甜的时光。',
+    '正视「{c}」逆位带来的卡点，找个时间坦诚聊一次。',
+    '顺势而为，「{c}」的承诺或礼物在前面等你们。',
+    '主动经营「{c}」——别等缘分自己来。'
+  ]},
+ wealth:{name:'财运',icon:'💰',pos3:['☜ 积累','◆ 流动','☞ 前路'],pos1:'今日财运指引',
+  img:{
+    a0:'财运顺流期：{c0} → {c1} → {c2}，整体支持你的财务方向。',
+    a1:'财务上的低谷：{c0} → {c1} → {c2}，先守住本金，别冒险。',
+    a2:'过去的财务基础已定，现在的现金流是重点：{c1} 告诉你怎么把握。',
+    a3:'过去的财务模式还在影响：看清「{c0}」那一课，会帮你少走弯路。',
+    a4:'未来财务走向暂时不明：先过好「{c1}」的现金管理。',
+    a5:'财务整体稳定，但需要你主动规划——{c2} 不会自己来。',
+    a6:'现在正在转折：{c1} 是你这阶段最重要的功课。'
+  },
+  past:['你的财务「基础」是「{c}」：{m}','你的财务「基础」是「{c}」（逆位）：{m}'],
+  pres:['你的财务「流动」是「{c}」：{m}','你的财务「流动」是「{c}」（逆位）：{m}'],
+  fut:['「未来」财务指向「{c}」：{m}','「未来」财务指向「{c}」（逆位）：{m}'],
+  ins:['在财务上','你的财运'],
+  arc:[
+    '三张牌主题一致，「{a0}」这条线在财务上反复出现——这是你近期最重要的课题。',
+    '从「{a0}」走向「{a2}」，这是一条完整的财富上升路径——好事在来的路上。',
+    '「{a0}」与「{a2}」相遇，旧的财务模式在收尾，新的机会即将开始。',
+    '你正从「{a0}」转入「{a2}」——从扩张到守成，先稳后动更聪明。',
+    '你处在「{a0}」的内在调整期——再坚持一下，财务会有质的变化。',
+    '「{a0}」已过大半，「{a2}」的成果即将显现——守住。',
+    '「{a0}」与「{a2}」双重转折叠在一起——一次财务上的关键升级就在前面。',
+    '专属于你的 {c0} → {c1} → {c2} 财务弧线——这是只属于你这一次的路径。'
+  ],
+  act:[
+    '让「{c}」的正向能量继续成为你的财务根基。',
+    '先放下「{c}」逆位带来的执念或冒进，回归理性。',
+    '全身心投入「{c}」的当下，机会稍纵即逝。',
+    '正视「{c}」逆位带来的财务卡点，暂停大投入。',
+    '顺势而为，「{c}」的财务收益在前面等你。',
+    '主动规划「{c}」——别让钱自己来去。'
+  ]},
+ career:{name:'事业',icon:'💼',pos3:['☜ 起点','◆ 现状','☞ 前路'],pos1:'今日事业指引',
+  img:{
+    a0:'事业顺流期：{c0} → {c1} → {c2}，方向、行动、未来都支持你。',
+    a1:'事业低谷期：{c0} → {c1} → {c2}，先稳住再求变。',
+    a2:'过去的职业基础已定，现在的处境是重点：{c1} 告诉你怎么把握。',
+    a3:'过去的职业模式还在影响：看清「{c0}」那一课会帮到你。',
+    a4:'未来职业走向暂时不明：先过好「{c1}」的现状。',
+    a5:'事业整体稳定，但需要你主动争取——{c2} 不会自己来。',
+    a6:'现在正在转折：{c1} 是你这阶段最重要的功课。'
+  },
+  past:['你的事业「起点」是「{c}」：{m}','你的事业「起点」是「{c}」（逆位）：{m}'],
+  pres:['你的事业「现状」是「{c}」：{m}','你的事业「现状」是「{c}」（逆位）：{m}'],
+  fut:['「未来」事业指向「{c}」：{m}','「未来」事业指向「{c}」（逆位）：{m}'],
+  ins:['在职场上','你的事业'],
+  arc:[
+    '三张牌主题一致，「{a0}」这条线在事业上反复出现——这是你近期最重要的课题。',
+    '从「{a0}」走向「{a2}」，这是一条完整的事业上升路径——好事在来的路上。',
+    '「{a0}」与「{a2}」相遇，旧的职业阶段在收尾，新篇章即将开始。',
+    '你正从「{a0}」转入「{a2}」——从冲劲到沉淀，慢下来想方向比快更重要。',
+    '你处在「{a0}」的内在调整期——再坚持一下，事业会有质的变化。',
+    '「{a0}」已过大半，「{a2}」的成果即将显现——守住。',
+    '「{a0}」与「{a2}」双重转折叠在一起——一次事业上的关键升级就在前面。',
+    '专属于你的 {c0} → {c1} → {c2} 事业弧线——这是只属于你这一次的路径。'
+  ],
+  act:[
+    '让「{c}」的正向经验继续成为你的事业根基。',
+    '先放下「{c}」逆位带来的执念或僵化，回归初心。',
+    '全身心投入「{c}」的当下，这是你大展身手的时候。',
+    '正视「{c}」逆位带来的卡点，找个前辈或同事聊一次。',
+    '顺势而为，「{c}」的事业机会在前面等你。',
+    '主动争取「{c}」——机会不会自己来。'
+  ]},
+ study:{name:'学业',icon:'📚',pos3:['☜ 基础','◆ 此刻','☞ 前路'],pos1:'今日学业指引',
+  img:{
+    a0:'学业顺流期：{c0} → {c1} → {c2}，基础、现在、未来都支持你。',
+    a1:'学业低谷期：{c0} → {c1} → {c2}，方法需要调整，先稳住心态。',
+    a2:'过去的学业基础已定，现在的状态是重点：{c1} 告诉你怎么把握。',
+    a3:'过去的学业模式还在影响：看清「{c0}」那一课会帮到你。',
+    a4:'未来学业走向暂时不明：先过好「{c1}」的当下。',
+    a5:'学业整体稳定，但需要你主动投入——{c2} 不会自己来。',
+    a6:'现在正在转折：{c1} 是你这阶段最重要的功课。'
+  },
+  past:['你的学业「基础」是「{c}」：{m}','你的学业「基础」是「{c}」（逆位）：{m}'],
+  pres:['你的学业「此刻」是「{c}」：{m}','你的学业「此刻」是「{c}」（逆位）：{m}'],
+  fut:['「未来」学业指向「{c}」：{m}','「未来」学业指向「{c}」（逆位）：{m}'],
+  ins:['在学习上','你的学业'],
+  arc:[
+    '三张牌主题一致，「{a0}」这条线在学习上反复出现——这是你近期最重要的课题。',
+    '从「{a0}」走向「{a2}」，这是一条完整的学业上升路径——好事在来的路上。',
+    '「{a0}」与「{a2}」相遇，旧的学习方式在收尾，新方法即将开始。',
+    '你正从「{a0}」转入「{a2}」——从硬记到理解，先想通比硬学更重要。',
+    '你处在「{a0}」的内在消化期——再坚持一下，学业会有质的变化。',
+    '「{a0}」已过大半，「{a2}」的成果即将显现——稳住。',
+    '「{a0}」与「{a2}」双重转折叠在一起——一次学习上的关键突破就在前面。',
+    '专属于你的 {c0} → {c1} → {c2} 学业弧线——这是只属于你这一次的路径。'
+  ],
+  act:[
+    '让「{c}」的正向学习方式继续成为你的基础。',
+    '先放下「{c}」逆位带来的挫败感或逃避，回归基础。',
+    '全身心投入「{c}」的当下，这是你收获最大的阶段。',
+    '正视「{c}」逆位带来的学习卡点，换个方法或找人请教。',
+    '顺势而为，「{c}」的学习成果在前面等你。',
+    '主动加码「{c}」——多投入一点会回报明显。'
+  ]},
+ health:{name:'健康',icon:'🌿',pos3:['☜ 既往','◆ 此刻','☞ 前路'],pos1:'今日身心指引',
+  img:{
+    a0:'身心顺流期：{c0} → {c1} → {c2}，状态越来越好。',
+    a1:'身心低谷期：{c0} → {c1} → {c2}，先好好休息再说。',
+    a2:'过去的身心基础已定，现在的状态是重点：{c1} 告诉你怎么调整。',
+    a3:'过去的身心模式还在影响：看清「{c0}」那一课会帮到你。',
+    a4:'未来身心走向暂时不明：先把「{c1}」的此刻照顾好。',
+    a5:'身心整体平稳，但需要你主动调理——{c2} 不会自己来。',
+    a6:'现在正在转折：{c1} 是你这阶段最重要的功课。'
+  },
+  past:['你的身心「既往」是「{c}」：{m}','你的身心「既往」是「{c}」（逆位）：{m}'],
+  pres:['你的身心「此刻」是「{c}」：{m}','你的身心「此刻」是「{c}」（逆位）：{m}'],
+  fut:['「未来」身心指向「{c}」：{m}','「未来」身心指向「{c}」（逆位）：{m}'],
+  ins:['在身心上','你的状态'],
+  arc:[
+    '三张牌主题一致，「{a0}」这条线在身心上反复出现——这是你近期最重要的课题。',
+    '从「{a0}」走向「{a2}」，这是一条完整的恢复路径——身心会越来越好。',
+    '「{a0}」与「{a2}」相遇，旧的身心模式在收尾，新的平衡即将开始。',
+    '你正从「{a0}」转入「{a2}」——从紧绷到放松，先让自己停下来。',
+    '你处在「{a0}」的内在恢复期——再坚持一下，身心会有质的变化。',
+    '「{a0}」已过大半，「{a2}」的成果即将显现——稳住。',
+    '「{a0}」与「{a2}」双重转折叠在一起——一次身心上的关键修复就在前面。',
+    '专属于你的 {c0} → {c1} → {c2} 身心弧线——这是只属于你这一次的路径。'
+  ],
+  act:[
+    '让「{c}」的正向习惯继续支撑你的健康。',
+    '先放下「{c}」逆位带来的过度紧张或忽略，回归照顾自己。',
+    '全身心享受「{c}」的当下，这是你状态最好的时候。',
+    '正视「{c}」逆位带来的卡点，必要时请咨询专业人士。',
+    '顺势而为，「{c}」的身心改善在前面等你。',
+    '主动调整作息/饮食/心态——别等身体来提醒你。'
+  ]}
 };
 const ICON=['🃏','🪄','🌙','👑','🏛️','🔑','💞','🛡️','🦁','🏮','🎡','⚖️','🙃','💀','🏺','😈','🗼','⭐','🌕','☀️','📯','🌍'];
 const ZODIAC=[
- {id:0,s:'♈',n:'白羊',el:'火🔥',tp:'先驱者',day:{love:'★★★★',career:'★★★★',wealth:'★★★',health:'★★★★',week:{love:'★★★',career:'★★★★',wealth:'★★★',health:'★★★★'},month:{love:'★★★',career:'★★★',wealth:'★★★',health:'★★★★'}}},
- {id:1,s:'♉',n:'金牛',el:'土🌍',tp:'稳定者',day:{love:'★★★',career:'★★★',wealth:'★★★★★',health:'★★★★',week:{love:'★★★',career:'★★★',wealth:'★★★★★',health:'★★★'},month:{love:'★★★★',career:'★★★',wealth:'★★★★★',health:'★★★★'}}},
- {id:2,s:'♊',n:'双子',el:'风💨',tp:'探索者',day:{love:'★★★★',career:'★★★',wealth:'★★★',health:'★★★',week:{love:'★★★',career:'★★★★',wealth:'★★★',health:'★★★'},month:{love:'★★★',career:'★★★',wealth:'★★★★',health:'★★★'}}},
- {id:3,s:'♋',n:'巨蟹',el:'水🌊',tp:'守护者',day:{love:'★★★★★',career:'★★★',wealth:'★★★',health:'★★★★',week:{love:'★★★★★',career:'★★★',wealth:'★★★',health:'★★★★'},month:{love:'★★★★',career:'★★★★',wealth:'★★★',health:'★★★★'}}},
- {id:4,s:'♌',n:'狮子',el:'火🔥',tp:'领袖者',day:{love:'★★★★',career:'★★★★★',wealth:'★★★★',health:'★★★',week:{love:'★★★',career:'★★★★★',wealth:'★★★★',health:'★★★'},month:{love:'★★★★',career:'★★★★★',wealth:'★★★★',health:'★★★★'}}},
- {id:5,s:'♍',n:'处女',el:'土🌍',tp:'完美者',day:{love:'★★★',career:'★★★★',wealth:'★★★',health:'★★★★',week:{love:'★★★',career:'★★★★★',wealth:'★★★',health:'★★★'},month:{love:'★★★★',career:'★★★★',wealth:'★★★',health:'★★★★'}}},
- {id:6,s:'♎',n:'天秤',el:'风💨',tp:'平衡者',day:{love:'★★★★★',career:'★★★',wealth:'★★★',health:'★★★',week:{love:'★★★★★',career:'★★★',wealth:'★★★',health:'★★★★'},month:{love:'★★★★',career:'★★★★',wealth:'★★★',health:'★★★'}}},
- {id:7,s:'♏',n:'天蝎',el:'水🌊',tp:'洞察者',day:{love:'★★★★',career:'★★★★',wealth:'★★★★',health:'★★★',week:{love:'★★★★',career:'★★★★',wealth:'★★★★★',health:'★★★'},month:{love:'★★★★★',career:'★★★★',wealth:'★★★★',health:'★★★★'}}},
- {id:8,s:'♐',n:'射手',el:'火🔥',tp:'自由者',day:{love:'★★★',career:'★★★★',wealth:'★★★',health:'★★★',week:{love:'★★★',career:'★★★★',wealth:'★★★★',health:'★★★'},month:{love:'★★★',career:'★★★★',wealth:'★★★',health:'★★★★'}}},
- {id:9,s:'♑',n:'摩羯',el:'土🌍',tp:'攀登者',day:{love:'★★★',career:'★★★★★',wealth:'★★★★',health:'★★★★',week:{love:'★★★',career:'★★★★★',wealth:'★★★★',health:'★★★'},month:{love:'★★★★',career:'★★★★★',wealth:'★★★★',health:'★★★★'}}},
- {id:10,s:'♒',n:'水瓶',el:'风💨',tp:'革新者',day:{love:'★★★★',career:'★★★★',wealth:'★★★',health:'★★★',week:{love:'★★★★',career:'★★★',wealth:'★★★',health:'★★★★'},month:{love:'★★★',career:'★★★★',wealth:'★★★★',health:'★★★'}}},
- {id:11,s:'♓',n:'双鱼',el:'水🌊',tp:'造梦者',day:{love:'★★★★★',career:'★★★',wealth:'★★★',health:'★★★',week:{love:'★★★★★',career:'★★★',wealth:'★★★',health:'★★★★'},month:{love:'★★★★',career:'★★★★',wealth:'★★★',health:'★★★'}}}
+ {id:0,s:'♈',n:'白羊',el:'火🔥',tp:'先驱者',day:{love:'★★★★',career:'★★★★',wealth:'★★★',health:'★★★★'},week:{love:'★★★',career:'★★★★',wealth:'★★★',health:'★★★★'},month:{love:'★★★',career:'★★★',wealth:'★★★',health:'★★★★'}},
+ {id:1,s:'♉',n:'金牛',el:'土🌍',tp:'稳定者',day:{love:'★★★',career:'★★★',wealth:'★★★★★',health:'★★★★'},week:{love:'★★★',career:'★★★',wealth:'★★★★★',health:'★★★'},month:{love:'★★★★',career:'★★★',wealth:'★★★★★',health:'★★★★'}},
+ {id:2,s:'♊',n:'双子',el:'风💨',tp:'探索者',day:{love:'★★★★',career:'★★★',wealth:'★★★',health:'★★★'},week:{love:'★★★',career:'★★★★',wealth:'★★★',health:'★★★'},month:{love:'★★★',career:'★★★',wealth:'★★★★',health:'★★★'}},
+ {id:3,s:'♋',n:'巨蟹',el:'水🌊',tp:'守护者',day:{love:'★★★★★',career:'★★★',wealth:'★★★',health:'★★★★'},week:{love:'★★★★★',career:'★★★',wealth:'★★★',health:'★★★★'},month:{love:'★★★★',career:'★★★★',wealth:'★★★',health:'★★★★'}},
+ {id:4,s:'♌',n:'狮子',el:'火🔥',tp:'领袖者',day:{love:'★★★★',career:'★★★★★',wealth:'★★★★',health:'★★★'},week:{love:'★★★',career:'★★★★★',wealth:'★★★★',health:'★★★'},month:{love:'★★★★',career:'★★★★★',wealth:'★★★★',health:'★★★★'}},
+ {id:5,s:'♍',n:'处女',el:'土🌍',tp:'完美者',day:{love:'★★★',career:'★★★★',wealth:'★★★',health:'★★★★'},week:{love:'★★★',career:'★★★★★',wealth:'★★★',health:'★★★'},month:{love:'★★★★',career:'★★★★',wealth:'★★★',health:'★★★★'}},
+ {id:6,s:'♎',n:'天秤',el:'风💨',tp:'平衡者',day:{love:'★★★★★',career:'★★★',wealth:'★★★',health:'★★★'},week:{love:'★★★★★',career:'★★★',wealth:'★★★',health:'★★★★'},month:{love:'★★★★',career:'★★★★',wealth:'★★★',health:'★★★'}},
+ {id:7,s:'♏',n:'天蝎',el:'水🌊',tp:'洞察者',day:{love:'★★★★',career:'★★★★',wealth:'★★★★',health:'★★★'},week:{love:'★★★★',career:'★★★★',wealth:'★★★★★',health:'★★★'},month:{love:'★★★★★',career:'★★★★',wealth:'★★★★',health:'★★★★'}},
+ {id:8,s:'♐',n:'射手',el:'火🔥',tp:'自由者',day:{love:'★★★',career:'★★★★',wealth:'★★★',health:'★★★'},week:{love:'★★★',career:'★★★★',wealth:'★★★★',health:'★★★'},month:{love:'★★★',career:'★★★★',wealth:'★★★',health:'★★★★'}},
+ {id:9,s:'♑',n:'摩羯',el:'土🌍',tp:'攀登者',day:{love:'★★★',career:'★★★★★',wealth:'★★★★',health:'★★★★'},week:{love:'★★★',career:'★★★★★',wealth:'★★★★',health:'★★★'},month:{love:'★★★★',career:'★★★★★',wealth:'★★★★',health:'★★★★'}},
+ {id:10,s:'♒',n:'水瓶',el:'风💨',tp:'革新者',day:{love:'★★★★',career:'★★★★',wealth:'★★★',health:'★★★'},week:{love:'★★★★',career:'★★★',wealth:'★★★',health:'★★★★'},month:{love:'★★★',career:'★★★★',wealth:'★★★★',health:'★★★'}},
+ {id:11,s:'♓',n:'双鱼',el:'水🌊',tp:'造梦者',day:{love:'★★★★★',career:'★★★',wealth:'★★★',health:'★★★'},week:{love:'★★★★★',career:'★★★',wealth:'★★★',health:'★★★★'},month:{love:'★★★★',career:'★★★★',wealth:'★★★',health:'★★★'}}
 ];
 const SIGNS={
  wisdom:[
@@ -611,8 +887,7 @@ function revealTarot(){
 function genSingleTarotReading(card, rev, domain){
   const D = TAROT_DOMAIN[domain] || TAROT_DOMAIN.general;
   const t = TAROT_THEME[card.n];
-  const arc = t ? t.arc : '转化';
-  const arcName = t ? t.n : card.up;
+  const cardName = card.cn;  // 用真实牌名，不再用抽象主题名
 
   // 领域化开场白
   const introMap = {
@@ -671,8 +946,8 @@ function genSingleTarotReading(card, rev, domain){
   // 行动建议
   const actionMap = {
     general: rev
-      ? `建议你在「${arcName}」的能量中先稳住内核，再寻找突破口。别急于行动，先理清方向。`
-      : `建议你在「${arcName}」的能量中顺势而为，让它成为你的助力。`,
+      ? `建议你在「${cardName}」的能量中先稳住内核，再寻找突破口。别急于行动，先理清方向。`
+      : `建议你在「${cardName}」的能量中顺势而为，让它成为你的助力。`,
     love: rev
       ? `在感情里，先给自己一些空间，理清真正想要的，再做决定或行动。`
       : `在感情中信任自己的直觉，遇到选择时，诚实面对内心。`,
@@ -702,34 +977,44 @@ function genSingleTarotReading(card, rev, domain){
 
 function genCombinedReading(cards,revs,domain){
   const D=TAROT_DOMAIN[domain]||TAROT_DOMAIN.general;
-  const t0=TAROT_THEME[cards[0].n],t1=TAROT_THEME[cards[1].n],t2=TAROT_THEME[cards[2].n];
+  const cs=[cards[0],cards[1],cards[2]];
+  const ms=revs.map((r,i)=>r?cs[i].revT:cs[i].upT);
+  const ts=cs.map(c=>TAROT_THEME[c.n]);
   const revN=revs.filter(Boolean).length;
   let imgKey;
-  if(revN===0)imgKey='a0';else if(revN===3)imgKey='a1';
-  else{const r=revs.indexOf(true);if(revs[1])imgKey='a6';else if(r===-1)imgKey='a5';else if(r===1)imgKey='a2';else if(r===0)imgKey='a3';else imgKey='a4';}
-  const image=D.img[imgKey].replace('{t0}',t0.n).replace('{t1}',t1.n).replace('{t2}',t2.n);
-  const energy=revN===0?'顺势上升':revN===3?'深度蜕变':revN===1?(revs[1]?'此刻的觉醒':'过渡期'):'重要转折';
-  const p0=revs[0]?1:0,q0=revs[1]?1:0,q2=revs[2]?1:0;
-  const pastText=D.past[p0].replace('{t}',t0.n);
-  const presText=D.pres[q0].replace('{t}',t1.n);
-  const futText=D.fut[q2].replace('{t}',t2.n);
+  if(revN===0)imgKey='a0';
+  else if(revN===3)imgKey='a1';
+  else{
+    if(revs[1])imgKey=revs[0]?'a5':(revs[2]?'a4':'a6');
+    else if(revs[0])imgKey='a3';
+    else imgKey='a2';
+  }
+  const fill=s=>s
+    .replace(/{c0}/g,cs[0].cn).replace(/{c1}/g,cs[1].cn).replace(/{c2}/g,cs[2].cn)
+    .replace(/{m0}/g,ms[0]).replace(/{m1}/g,ms[1]).replace(/{m2}/g,ms[2])
+    .replace(/{a0}/g,ts[0].arc).replace(/{a1}/g,ts[1].arc).replace(/{a2}/g,ts[2].arc);
+  const image=fill(D.img[imgKey]);
+  const energy=revN===0?'顺势上升':revN===3?'深度沉淀':revN===1?(revs[1]?'此刻卡点':'过渡期'):'重要节点';
+  const pastText=fill(D.past[revs[0]?1:0].replace('{c}',cs[0].cn).replace('{m}',ms[0]));
+  const presText=fill(D.pres[revs[1]?1:0].replace('{c}',cs[1].cn).replace('{m}',ms[1]));
+  const futText=fill(D.fut[revs[2]?1:0].replace('{c}',cs[2].cn).replace('{m}',ms[2]));
   let insightIdx=0;
-  if(t0.arc===t2.arc)insightIdx=0;
-  else if(t0.arc==='新篇'&&t2.arc==='圆满')insightIdx=1;
-  else if(t0.arc==='圆满'&&t2.arc==='新篇')insightIdx=2;
-  else if(t0.arc==='行动'&&t2.arc==='内省')insightIdx=3;
-  else if(t0.arc==='内省'&&t2.arc==='转化')insightIdx=4;
-  else if(t0.arc==='转化'&&t2.arc==='圆满')insightIdx=5;
-  else if(t0.arc==='转折'&&t2.arc==='转折')insightIdx=6;
+  if(ts[0].arc===ts[2].arc)insightIdx=0;
+  else if(ts[0].arc==='新篇'&&ts[2].arc==='圆满')insightIdx=1;
+  else if(ts[0].arc==='圆满'&&ts[2].arc==='新篇')insightIdx=2;
+  else if(ts[0].arc==='行动'&&ts[2].arc==='内省')insightIdx=3;
+  else if(ts[0].arc==='内省'&&ts[2].arc==='转化')insightIdx=4;
+  else if(ts[0].arc==='转化'&&ts[2].arc==='圆满')insightIdx=5;
+  else if(ts[0].arc==='转折'&&ts[2].arc==='转折')insightIdx=6;
   else insightIdx=7;
-  let base=D.arc[insightIdx].replace('{a}',t0.arc).replace('{t0}',t0.n).replace('{t1}',t1.n).replace('{t2}',t2.n);
-  const insight=D.ins[0]+'，'+base+'。';
-  const a1=D.act[p0*2+(revs[0]?1:0)].replace('{t}',t0.n);
-  const a2=D.act[2+q0*2+(revs[1]?1:0)].replace('{t}',t1.n);
-  const a3=D.act[4+q2*2+(revs[2]?1:0)].replace('{t}',t2.n);
-  return{image,energy,pastText,presText,futText,insight,advice:a1+'；'+a2+'；'+a3+'。',domainName:D.name,domainIcon:D.icon};
+  const arcText=fill(D.arc[insightIdx]);
+  const insight=D.ins[0]+'，'+arcText;
+  const a1=fill(D.act[revs[0]?1:0].replace('{c}',cs[0].cn));
+  const a2=fill(D.act[2+(revs[1]?1:0)].replace('{c}',cs[1].cn));
+  const a3=fill(D.act[4+(revs[2]?1:0)].replace('{c}',cs[2].cn));
+  const cleanA=[a1,a2,a3].map(s=>s.replace(/[。\.!！]+$/,''));
+  return{image,energy,pastText,presText,futText,insight,advice:cleanA.join('；')+'。',domainName:D.name,domainIcon:D.icon};
 }
-
 function showTarotReading(){
   const D=TAROT_DOMAIN[tarotDomain]||TAROT_DOMAIN.general;
   const pos=tarotMode==='self'?[D.pos1]:D.pos3;
@@ -741,7 +1026,7 @@ function showTarotReading(){
     const r=genCombinedReading(cards,revs,tarotDomain);
     html+=`<div class="t-combined">
       <div class="t-combined-badge">${r.domainIcon} ${r.domainName}</div>
-      <div class="t-combined-header">✦ 牌 阵 意 象 ✦</div>
+      <div class="t-combined-header">✦ 总 览 ✦</div>
       <div class="t-combined-image">${r.image}</div>
       <div class="t-combined-meta">
         <span class="t-meta-chip">${cards[0].cn} → ${cards[1].cn} → ${cards[2].cn}</span>
@@ -821,19 +1106,29 @@ function setHoroDim(d,el){
   el.classList.add('active');
   playSfx('click');
 }
+
+function resetHoro(){
+  document.getElementById('horo-single-result').innerHTML='';
+  document.getElementById('horo-duo-result').innerHTML='';
+  if(window && window.scrollTo) window.scrollTo({top:0,behavior:'smooth'});
+  playSfx('click');
+}
 function setHoroZ(who,id,el){
   if(who==='you'){
     horoYou=id;
     document.querySelectorAll('#horo-you .opt').forEach(e=>e.classList.remove('active'));
     el.classList.add('active');
+    document.getElementById('horo-duo-result').innerHTML='';
   } else if(who==='friend'){
     horoFriend=id;
     document.querySelectorAll('#horo-friend .opt').forEach(e=>e.classList.remove('active'));
     el.classList.add('active');
+    document.getElementById('horo-duo-result').innerHTML='';
   } else {
     horoSingle=id;
     document.querySelectorAll('#horo-signs .opt').forEach(e=>e.classList.remove('active'));
     el.classList.add('active');
+    document.getElementById('horo-single-result').innerHTML='';
   }
   playSfx('click');
 }
@@ -872,8 +1167,12 @@ function doHoroSingle(){
   <div class="h-reading" style="margin-top:8px">
     <h4>🔮 占卜师 ${seerName} 的话</h4>
     <div style="font-size:12px;line-height:1.8;opacity:.85">${pick(seer==='jimmy'?MSGS_JIMMY:MSGS_GUA)}</div>
+  </div>
+  <div style="text-align:center;margin-top:14px">
+    <button class="btn" onclick="resetHoro()">↩ 返回 · 重新选择星座</button>
   </div></div>`;
   document.getElementById('horo-single-result').innerHTML=html;
+  if(window && window.scrollTo) window.scrollTo({top:0,behavior:'smooth'});
 }
 function doHoroDuo(){
   if(horoYou<0||horoFriend<0){alert('请先选择两个星座');return;}
@@ -894,8 +1193,12 @@ function doHoroDuo(){
       <div><strong>搭档：</strong>${b.s} ${b.n} · ${b.tp} · ${b.el}</div>
       <div style="margin-top:6px;font-size:11px;opacity:.7">${tag.detail}</div>
     </div>
+  </div>
+  <div style="text-align:center;margin-top:14px">
+    <button class="btn" onclick="resetHoro()">↩ 返回 · 重新选择星座</button>
   </div></div>`;
   document.getElementById('horo-duo-result').innerHTML=html;
+  if(window && window.scrollTo) window.scrollTo({top:0,behavior:'smooth'});
 }
 function getMatchScore(a,b){
   const sameEl=(a.el[0]===b.el[0])?1:0;
@@ -1057,7 +1360,7 @@ function showSignResult(sign){
     <div class="sign-name">「 ${sign.n} 」</div>
     <div class="sign-gong">📜 签诗</div>
     <div class="sign-poem">${sign.poem}</div>
-    ${keywords ? `<div style="text-align:center;font-size:11px;opacity:.5;margin:4px 0">关键词：${sg.keywords}</div>` : ''}
+    ${sg.keywords ? `<div style="text-align:center;font-size:11px;opacity:.5;margin:4px 0">关键词：${sg.keywords}</div>` : ''}
     <div class="sign-interpret"><strong>💬 解读：</strong>${sign.inp}</div>
     <div class="sign-interpret" style="border-top:1px dashed rgba(255,255,255,.15);padding-top:10px;margin-top:8px">
       <strong>✨ 综合指引：</strong>${sg.guide} ${sg.action}
